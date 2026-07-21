@@ -35,10 +35,13 @@ import {
   Cloud,
   RefreshCw,
   Cpu,
-  Terminal
+  Terminal,
+  Edit,
+  Palette
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
+import { stripMarkdown, generatePremiumHTMLReport } from "./utils/cleanText";
 import { WelcomeScreen } from "./components/WelcomeScreen.tsx";
 import { createClient } from "@supabase/supabase-js";
 import { OnboardingWizard } from "./components/OnboardingWizard.tsx";
@@ -117,17 +120,19 @@ const cleanSectionContent = (text: string) => {
   return lines.join("\n").trim();
 };
 
-const renderCleanSummary = (text: string) => {
+const renderCleanSummary = (text: string, accentColor: string = "blue") => {
   if (!text) return null;
   let cleaned = text
     .replace(/#{1,6}\s?/g, "")
     .replace(/\*\*/g, "")
     .replace(/^\s*[-*+]\s+/gm, "")
     .trim();
+  const theme = COLOR_THEMES[accentColor] || COLOR_THEMES.blue;
+  const glowBg = accentColor === "blue" ? "bg-blue-500/10" : accentColor === "indigo" ? "bg-indigo-500/10" : accentColor === "emerald" ? "bg-emerald-500/10" : accentColor === "violet" ? "bg-violet-500/10" : "bg-slate-500/10";
   return (
     <div className="p-6 md:p-8 bg-slate-900 rounded-3xl text-white shadow-lg space-y-3 relative overflow-hidden my-6 border border-slate-800 print:bg-white print:text-slate-900 print:border print:border-slate-300 animate-fade-in">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none print:hidden" />
-      <span className="text-[9px] font-mono tracking-widest text-blue-400 font-bold uppercase block print:text-blue-600">
+      <div className={`absolute top-0 right-0 w-32 h-32 ${glowBg} rounded-full blur-2xl pointer-events-none print:hidden`} />
+      <span className={`text-[9px] font-mono tracking-widest ${theme.text} font-bold uppercase block print:text-slate-800`}>
         SÍNTESIS ESTRATÉGICA EJECUTIVA
       </span>
       <p className="font-serif text-sm md:text-base leading-relaxed text-slate-100 font-light italic print:text-slate-850">
@@ -139,6 +144,74 @@ const renderCleanSummary = (text: string) => {
       </div>
     </div>
   );
+};
+
+export const COLOR_THEMES: Record<string, {
+  name: string;
+  text: string;
+  bgLight: string;
+  bg: string;
+  border: string;
+  ring: string;
+  gradient: string;
+  hex: string;
+  gradientHex: string;
+}> = {
+  blue: {
+    name: "Azul Corporativo",
+    text: "text-blue-600",
+    bgLight: "bg-blue-50/70",
+    bg: "bg-blue-600",
+    border: "border-blue-100",
+    ring: "ring-blue-500",
+    gradient: "from-blue-600 to-indigo-750",
+    hex: "#2563eb",
+    gradientHex: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"
+  },
+  indigo: {
+    name: "Índigo Moderno",
+    text: "text-indigo-600",
+    bgLight: "bg-indigo-50/70",
+    bg: "bg-indigo-600",
+    border: "border-indigo-100",
+    ring: "ring-indigo-500",
+    gradient: "from-indigo-600 to-violet-750",
+    hex: "#4f46e5",
+    gradientHex: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)"
+  },
+  emerald: {
+    name: "Esmeralda Crecimiento",
+    text: "text-emerald-600",
+    bgLight: "bg-emerald-50/70",
+    bg: "bg-emerald-600",
+    border: "border-emerald-100",
+    ring: "ring-emerald-500",
+    gradient: "from-emerald-600 to-teal-750",
+    hex: "#059669",
+    gradientHex: "linear-gradient(135deg, #059669 0%, #047857 100%)"
+  },
+  violet: {
+    name: "Violeta Premium",
+    text: "text-violet-600",
+    bgLight: "bg-violet-50/70",
+    bg: "bg-violet-600",
+    border: "border-violet-100",
+    ring: "ring-violet-500",
+    gradient: "from-violet-600 to-purple-750",
+    hex: "#7c3aed",
+    gradientHex: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
+  },
+  slate: {
+    name: "Carbono Sobrio",
+    text: "text-slate-800",
+    bgLight: "bg-slate-100",
+    bg: "bg-slate-800",
+    border: "border-slate-200",
+    ring: "ring-slate-700",
+    gradient: "from-slate-700 to-slate-900",
+    hex: "#1e293b",
+    gradientHex: "linear-gradient(135deg, #334155 0%, #1e293b 100%)"
+  }
 };
 
 export default function App() {
@@ -188,6 +261,15 @@ export default function App() {
   const [selectedStrategyType, setSelectedStrategyType] = useState<string>("completa");
   const [activeTab, setActiveTab] = useState<"strategy" | "roi" | "hooks" | "tasks">("strategy");
   const [errorMessage, setErrorMessage] = useState<string>("");
+
+  // Inline Section Editing States
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>("");
+
+  // Consultant / Agency Branding States
+  const [consultorNombre, setConsultorNombre] = useState<string>("SCALING STRATEGY");
+  const [accentColor, setAccentColor] = useState<string>("blue");
+  const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
   
   // Dynamic loading message index
   const [loadingMessageIndex, setLoadingMessageIndex] = useState<number>(0);
@@ -744,6 +826,25 @@ export default function App() {
       .catch(() => triggerToast("Fallo al copiar", "error"));
   };
 
+  // Clipboard copies strategy clean text (with no markdown symbols)
+  const copyToClipboardClean = () => {
+    let rawText = `# ESTRATEGIA DE ESCALADO: ${formData.nombreNegocio.toUpperCase()}\n`;
+    rawText += `Modelo de Negocio: ${formData.tipoModelo} | Rubro: ${formData.rubro} | Plazo: ${formData.plazoMeta}\n\n`;
+    rawText += `## RESUMEN EJECUTIVO\n${resumen}\n\n`;
+
+    SECTIONS_CONFIG.forEach(sec => {
+      if (sections[sec.id]) {
+        rawText += `${sections[sec.id]}\n\n`;
+      }
+    });
+
+    const cleanText = stripMarkdown(rawText);
+
+    navigator.clipboard.writeText(cleanText)
+      .then(() => triggerToast("Estrategia limpia copiada al portapapeles sin símbolos de IA", "success"))
+      .catch(() => triggerToast("Fallo al copiar", "error"));
+  };
+
   // Download strategy as .md file
   const downloadStrategy = () => {
     let fullText = `# ESTRATEGIA DE ESCALADO: ${formData.nombreNegocio.toUpperCase()}\n`;
@@ -764,6 +865,68 @@ export default function App() {
     element.click();
     document.body.removeChild(element);
     triggerToast("Estrategia descargada como archivo .md con éxito", "success");
+  };
+
+  // Download strategy as clean plain text file (.txt)
+  const downloadCleanTxt = () => {
+    let rawText = `ESTRATEGIA DE ESCALADO DE ALTA PRECISIÓN: ${formData.nombreNegocio.toUpperCase()}\n`;
+    rawText += `==================================================\n`;
+    rawText += `Modelo de Negocio: ${formData.tipoModelo}\n`;
+    rawText += `Rubro de Mercado: ${formData.rubro || "General"}\n`;
+    rawText += `Horizonte de Tiempo: ${formData.plazoMeta}\n`;
+    rawText += `==================================================\n\n`;
+    rawText += `RESUMEN EJECUTIVO\n`;
+    rawText += `------------------\n`;
+    rawText += `"${resumen}"\n\n`;
+
+    SECTIONS_CONFIG.forEach(sec => {
+      if (sections[sec.id]) {
+        rawText += `## ${sec.name.toUpperCase()}\n`;
+        rawText += `${sections[sec.id]}\n\n`;
+      }
+    });
+
+    const cleanText = stripMarkdown(rawText);
+
+    const element = document.createElement("a");
+    const file = new Blob([cleanText], { type: "text/plain;charset=utf-8" });
+    element.href = URL.createObjectURL(file);
+    element.download = `Estrategia_Limpia_${formData.nombreNegocio.replace(/\s+/g, "_")}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    triggerToast("Estrategia descargada como texto limpio (.txt)", "success");
+  };
+
+  // Download strategy as fully-styled premium self-contained HTML report
+  const downloadPremiumHtml = () => {
+    const metaInfo = {
+      tipoModelo: formData.tipoModelo,
+      rubro: formData.rubro || "General",
+      plazoMeta: formData.plazoMeta,
+      ubicacion: formData.ubicacion
+    };
+
+    const theme = COLOR_THEMES[accentColor] || COLOR_THEMES.blue;
+
+    const htmlContent = generatePremiumHTMLReport(
+      formData.nombreNegocio,
+      metaInfo,
+      sections,
+      resumen,
+      consultorNombre,
+      theme.hex,
+      theme.hex // primaryDark color
+    );
+
+    const element = document.createElement("a");
+    const file = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    element.href = URL.createObjectURL(file);
+    element.download = `Informe_Corporativo_${formData.nombreNegocio.replace(/\s+/g, "_")}.html`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    triggerToast("¡Descargado Reporte HTML Corporativo de Lujo!", "success");
   };
 
   // Handle printing
@@ -941,7 +1104,10 @@ export default function App() {
                 <WorkspaceControls
                   formData={formData}
                   copyToClipboard={copyToClipboard}
+                  copyToClipboardClean={copyToClipboardClean}
                   downloadStrategy={downloadStrategy}
+                  downloadCleanTxt={downloadCleanTxt}
+                  downloadPremiumHtml={downloadPremiumHtml}
                   handlePrint={handlePrint}
                   saveStrategyToDB={saveStrategyToDB}
                   isSaving={isSaving}
@@ -1021,53 +1187,166 @@ export default function App() {
 
               {/* Render either Strategy canvas sheet, ROI calculator, or Copywriting hooks */}
               {(generationStatus !== "finished" || activeTab === "strategy") ? (
-                /* Document Sheet Layout */
-                <article
-                  id="printed-document-canvas"
-                  className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
-                >
-                  {/* Letterhead header block */}
-                  <div className="border-b border-slate-200/80 pb-6 flex flex-wrap items-start justify-between gap-6 print:border-b print:border-zinc-300">
-                    <div className="space-y-2">
-                      <span className="text-[8px] font-mono tracking-[0.25em] text-blue-600 font-bold uppercase block">
-                        PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
-                      </span>
-                      <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-slate-900 print:text-black leading-tight">
-                        {formData.nombreNegocio || "Nueva Estrategia"}
-                      </h1>
-                      
-                      {/* Real-Time updating metadata chips */}
-                      <div className="flex flex-wrap items-center gap-y-1.5 gap-x-2.5 text-[10px] text-slate-500 pt-1 font-medium">
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Modelo: <b>{formData.tipoModelo}</b></span>
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Rubro: <b>{formData.rubro || "General"}</b></span>
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Horizonte: <b>{formData.plazoMeta}</b></span>
-                        {formData.ubicacion && (
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
-                            <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                            {formData.ubicacion}
-                          </span>
-                        )}
+                <>
+                  {/* Premium Brand Customization Widget */}
+                  {generationStatus === "finished" && activeTab === "strategy" && (
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3 print:hidden animate-fade-in shadow-sm text-left">
+                      <button
+                        onClick={() => setIsBrandingOpen(!isBrandingOpen)}
+                        className="w-full flex items-center justify-between text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Palette className="w-4 h-4 text-indigo-500" />
+                          Personalización del Informe de Marca Blanca (Marca Propia)
+                        </span>
+                        <span className="text-[10px] bg-slate-200/70 text-slate-600 px-2.5 py-0.5 rounded-md font-mono">
+                          {isBrandingOpen ? "OCULTAR" : "PERSONALIZAR"}
+                        </span>
+                      </button>
+
+                      {isBrandingOpen && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2.5 border-t border-slate-200/50 animate-fade-in text-left">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-700 block">
+                              Nombre del Consultor / Agencia:
+                            </label>
+                            <input
+                              type="text"
+                              value={consultorNombre}
+                              onChange={(e) => setConsultorNombre(e.target.value)}
+                              placeholder="Ej. CONSULTORA ALPHA"
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-700 block">
+                              Color de Acento del Informe:
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {Object.entries(COLOR_THEMES).map(([key, t]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => setAccentColor(key)}
+                                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition cursor-pointer flex items-center gap-1.5 ${
+                                    accentColor === key
+                                      ? "bg-slate-950 text-white border-slate-950"
+                                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  <span className={`w-2.5 h-2.5 rounded-full ${t.bg}`} />
+                                  <span>{t.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Document Sheet Layout */}
+                  <article
+                    id="printed-document-canvas"
+                    className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
+                  >
+                    {/* Letterhead header block */}
+                    <div className="border-b border-slate-200/80 pb-6 flex flex-wrap items-start justify-between gap-6 print:border-b print:border-zinc-300">
+                      <div className="space-y-2">
+                        <span className={`text-[8px] font-mono tracking-[0.25em] ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase block`}>
+                          PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
+                        </span>
+                        <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-slate-900 print:text-black leading-tight">
+                          {formData.nombreNegocio || "Nueva Estrategia"}
+                        </h1>
+                        
+                        {/* Real-Time updating metadata chips */}
+                        <div className="flex flex-wrap items-center gap-y-1.5 gap-x-2.5 text-[10px] text-slate-500 pt-1 font-medium">
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Modelo: <b>{formData.tipoModelo}</b></span>
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Rubro: <b>{formData.rubro || "General"}</b></span>
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Horizonte: <b>{formData.plazoMeta}</b></span>
+                          {formData.ubicacion && (
+                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
+                              <MapPin className="w-2.5 h-2.5 text-slate-400" />
+                              {formData.ubicacion}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-display text-xs font-bold tracking-widest text-slate-900 block print:text-black">
+                          {consultorNombre.toUpperCase()}
+                        </span>
+                        <span className={`text-[8px] font-mono tracking-wider ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} block uppercase font-bold`}>
+                          GROWTH PLATFORM
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-mono mt-2 block">
+                          {new Date().toLocaleDateString("es-ES", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric"
+                          })}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="font-display text-xs font-bold tracking-widest text-slate-900 block print:text-black">SCALING STRATEGY</span>
-                      <span className="text-[8px] font-mono tracking-wider text-blue-600 block uppercase font-bold">GROWTH PLATFORM</span>
-                      <span className="text-[9px] text-slate-400 font-mono mt-2 block">
-                        {new Date().toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric"
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Content Section Sheet */}
-                  <div className="space-y-8">
-                    {resumen ? (
-                      renderCleanSummary(resumen)
-                    ) : (
+                    {/* Content Section Sheet */}
+                    <div className="space-y-8">
+                      {resumen ? (
+                        editingSectionId === "resumen" ? (
+                          <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-8 space-y-4 animate-fade-in border border-slate-800">
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                              <span className="text-[10px] font-mono tracking-widest text-blue-400 font-bold uppercase">
+                                EDITANDO SÍNTESIS EJECUTIVA
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {editingText.length} caracteres
+                              </span>
+                            </div>
+                            <textarea
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              className="w-full min-h-[150px] bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs md:text-sm text-slate-100 focus:outline-none focus:border-blue-500 font-serif leading-relaxed"
+                              placeholder="Escriba la síntesis ejecutiva aquí..."
+                            />
+                            <div className="flex justify-end gap-2.5">
+                              <button
+                                onClick={() => setEditingSectionId(null)}
+                                className="px-3.5 py-1.5 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setResumen(editingText);
+                                  setEditingSectionId(null);
+                                  triggerToast("Síntesis ejecutiva actualizada", "success");
+                                }}
+                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                              >
+                                Guardar Cambios
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative group">
+                            {renderCleanSummary(resumen, accentColor)}
+                            {generationStatus === "finished" && (
+                              <button
+                                onClick={() => {
+                                  setEditingSectionId("resumen");
+                                  setEditingText(resumen);
+                                }}
+                                className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold shadow-sm backdrop-blur border border-white/5 print:hidden"
+                                title="Editar Resumen"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Editar</span>
+                              </button>
+                            )}
+                          </div>
+                        )
+                      ) : (
                       generationStatus === "idle" && formData.nombreNegocio && (
                         <div className="p-4 bg-slate-50 border border-slate-200/60 border-dashed rounded-2xl text-xs text-slate-600 italic">
                           "Plan táctico estructurado para escalar el producto estrella <b>{formData.productoEstrella || "[Su Producto Estrella]"}</b> en <b>{formData.ubicacion || "[Ubicación de Operación]"}</b>, con una meta prioritaria a <b>{formData.plazoMeta}</b> de: <b>{formData.metaPrincipal || "[Meta Principal]"}</b>."
@@ -1083,20 +1362,74 @@ export default function App() {
 
                         if (completedContent) {
                            const cleanedText = cleanSectionContent(completedContent);
+                           const isEditingThisSection = editingSectionId === sec.id;
+
                            return (
-                             <div key={sec.id} className="animate-fade-in bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 space-y-4 print:border-none print:shadow-none print:p-0 print:border-b print:border-slate-250 print:pb-8">
-                               <div className="flex items-center gap-3 pb-3 border-b border-slate-100 print:pb-2">
-                                 <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-150 print:hidden text-slate-700">
-                                   {getSectionIcon(sec.id)}
+                             <div key={sec.id} className="animate-fade-in bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 space-y-4 print:border-none print:shadow-none print:p-0 print:border-b print:border-slate-250 print:pb-8 relative group">
+                               <div className="flex items-center justify-between pb-3 border-b border-slate-100 print:pb-2">
+                                 <div className="flex items-center gap-3">
+                                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-150 print:hidden text-slate-700">
+                                     {getSectionIcon(sec.id)}
+                                   </div>
+                                   <div>
+                                     <span className={`text-[9px] font-mono font-bold tracking-widest ${COLOR_THEMES[accentColor]?.text || "text-slate-400"} block uppercase print:hidden`}>
+                                       {isEditingThisSection ? "EDITANDO CONTENIDO" : "SECCIÓN COMPLETADA"}
+                                     </span>
+                                     <h3 className="font-display text-sm md:text-base font-bold text-slate-900 tracking-tight print:text-black">{sec.name}</h3>
+                                   </div>
                                  </div>
-                                 <div>
-                                   <span className="text-[9px] font-mono font-bold tracking-widest text-slate-400 block uppercase print:hidden">SECCIÓN COMPLETADA</span>
-                                   <h3 className="font-display text-sm md:text-base font-bold text-slate-900 tracking-tight print:text-black">{sec.name}</h3>
+
+                                 {/* Edit Button for finished sections */}
+                                 {generationStatus === "finished" && !isEditingThisSection && (
+                                   <button
+                                     onClick={() => {
+                                       setEditingSectionId(sec.id);
+                                       setEditingText(completedContent);
+                                     }}
+                                     className="bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold border border-slate-200 shadow-sm print:hidden"
+                                     title="Editar sección"
+                                   >
+                                     <Edit className="w-3.5 h-3.5" />
+                                     <span>Editar</span>
+                                   </button>
+                                 )}
+                               </div>
+
+                               {isEditingThisSection ? (
+                                 <div className="space-y-4 pt-2">
+                                   <p className="text-[10px] text-slate-500 leading-normal">
+                                     Puede editar directamente el texto (admite sintaxis Markdown para tablas, viñetas y negritas). Los cambios se sincronizan al instante en todas las exportaciones, descargas e impresiones.
+                                   </p>
+                                   <textarea
+                                     value={editingText}
+                                     onChange={(e) => setEditingText(e.target.value)}
+                                     className="w-full min-h-[250px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs md:text-sm text-slate-850 focus:outline-none focus:border-blue-600 font-mono leading-relaxed focus:ring-1 focus:ring-blue-600"
+                                     placeholder={`Escriba el contenido para ${sec.name}...`}
+                                   />
+                                   <div className="flex justify-end gap-2.5">
+                                     <button
+                                       onClick={() => setEditingSectionId(null)}
+                                       className="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:text-slate-950 rounded-xl text-xs font-bold transition cursor-pointer hover:bg-slate-50"
+                                     >
+                                       Cancelar
+                                     </button>
+                                     <button
+                                       onClick={() => {
+                                         setSections(prev => ({ ...prev, [sec.id]: editingText }));
+                                         setEditingSectionId(null);
+                                         triggerToast(`Sección ${sec.name} actualizada con éxito`, "success");
+                                       }}
+                                       className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                                     >
+                                       Guardar Cambios
+                                     </button>
+                                   </div>
                                  </div>
-                               </div>
-                               <div className="prose max-w-none text-xs md:text-sm font-normal text-slate-700 leading-relaxed space-y-4 print:text-black">
-                                 {parseMarkdownToReact(cleanedText)}
-                               </div>
+                               ) : (
+                                 <div className="prose max-w-none text-xs md:text-sm font-normal text-slate-700 leading-relaxed space-y-4 print:text-black">
+                                   {parseMarkdownToReact(cleanedText)}
+                                 </div>
+                               )}
                              </div>
                            );
                         }
@@ -1163,6 +1496,7 @@ export default function App() {
                     <span>PÁGINA 1 DE 1</span>
                   </div>
                 </article>
+              </>
               ) : activeTab === "roi" ? (
                 <ROICalculator formData={formData} />
               ) : activeTab === "hooks" ? (

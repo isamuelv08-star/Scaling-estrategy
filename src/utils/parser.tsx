@@ -12,71 +12,106 @@ export function parseMarkdownToReact(text: unknown): React.ReactNode {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
 
-  // 1. Robust Inline Tokenizer/Parser
+  // 1. Robust Inline Tokenizer/Parser (Non-regex robust implementation)
   const parseInlineFormatting = (lineText: string): React.ReactNode => {
     if (!lineText) return "";
 
-    const tokens: React.ReactNode[] = [];
-    let currentText = lineText;
+    const parts: React.ReactNode[] = [];
+    let remaining = lineText;
     let keyIdx = 0;
 
-    while (currentText) {
-      const boldMatch = currentText.match(/\*\*([\s\S]*?)\*\*/);
-      const italicMatch = currentText.match(/\*([\s\S]*?)\*/);
-      const codeMatch = currentText.match(/`([\s\S]*?)`/);
-
-      // Find which match comes first
-      let firstMatch: { index: number; length: number; type: 'bold' | 'italic' | 'code'; content: string } | null = null;
-
-      if (boldMatch && boldMatch.index !== undefined) {
-        firstMatch = { index: boldMatch.index, length: boldMatch[0].length, type: 'bold', content: boldMatch[1] };
-      }
-      if (italicMatch && italicMatch.index !== undefined) {
-        if (!firstMatch || italicMatch.index < firstMatch.index) {
-          firstMatch = { index: italicMatch.index, length: italicMatch[0].length, type: 'italic', content: italicMatch[1] };
-        }
-      }
-      if (codeMatch && codeMatch.index !== undefined) {
-        if (!firstMatch || codeMatch.index < firstMatch.index) {
-          firstMatch = { index: codeMatch.index, length: codeMatch[0].length, type: 'code', content: codeMatch[1] };
+    while (remaining) {
+      const boldIdx = remaining.indexOf("**");
+      const codeIdx = remaining.indexOf("`");
+      
+      // Find first single asterisk not part of double asterisks
+      let italicIdx = -1;
+      for (let i = 0; i < remaining.length; i++) {
+        if (remaining[i] === "*") {
+          const isDoubleBefore = i > 0 && remaining[i-1] === "*";
+          const isDoubleAfter = i < remaining.length - 1 && remaining[i+1] === "*";
+          if (!isDoubleBefore && !isDoubleAfter) {
+            italicIdx = i;
+            break;
+          }
         }
       }
 
-      if (firstMatch) {
-        // Push prefix text
-        if (firstMatch.index > 0) {
-          tokens.push(currentText.substring(0, firstMatch.index));
-        }
+      // Determine first token
+      let minIdx = Infinity;
+      let tokenType: "bold" | "italic" | "code" | null = null;
 
-        // Push premium-formatted token
-        if (firstMatch.type === 'bold') {
-          tokens.push(
+      if (boldIdx !== -1 && boldIdx < minIdx) {
+        minIdx = boldIdx;
+        tokenType = "bold";
+      }
+      if (italicIdx !== -1 && italicIdx < minIdx) {
+        minIdx = italicIdx;
+        tokenType = "italic";
+      }
+      if (codeIdx !== -1 && codeIdx < minIdx) {
+        minIdx = codeIdx;
+        tokenType = "code";
+      }
+
+      if (tokenType === null) {
+        parts.push(remaining);
+        break;
+      }
+
+      // Text before token
+      if (minIdx > 0) {
+        parts.push(remaining.substring(0, minIdx));
+      }
+
+      const postToken = remaining.substring(minIdx + (tokenType === "bold" ? 2 : 1));
+      
+      if (tokenType === "bold") {
+        const endIdx = postToken.indexOf("**");
+        if (endIdx !== -1) {
+          const content = postToken.substring(0, endIdx);
+          parts.push(
             <strong key={`b-${keyIdx++}`} className="font-bold text-slate-900 bg-slate-50 border border-slate-200/50 px-1.5 py-0.5 rounded-md shadow-sm">
-              {firstMatch.content}
+              {content}
             </strong>
           );
-        } else if (firstMatch.type === 'italic') {
-          tokens.push(
+          remaining = postToken.substring(endIdx + 2);
+        } else {
+          parts.push("**");
+          remaining = postToken;
+        }
+      } else if (tokenType === "italic") {
+        const endIdx = postToken.indexOf("*");
+        if (endIdx !== -1) {
+          const content = postToken.substring(0, endIdx);
+          parts.push(
             <span key={`i-${keyIdx++}`} className="italic text-slate-800 font-medium bg-indigo-50/30 px-1 rounded-md">
-              {firstMatch.content}
+              {content}
             </span>
           );
-        } else if (firstMatch.type === 'code') {
-          tokens.push(
+          remaining = postToken.substring(endIdx + 1);
+        } else {
+          parts.push("*");
+          remaining = postToken;
+        }
+      } else if (tokenType === "code") {
+        const endIdx = postToken.indexOf("`");
+        if (endIdx !== -1) {
+          const content = postToken.substring(0, endIdx);
+          parts.push(
             <code key={`c-${keyIdx++}`} className="font-mono text-xs bg-slate-100 text-indigo-600 px-1.5 py-0.5 rounded border border-slate-200">
-              {firstMatch.content}
+              {content}
             </code>
           );
+          remaining = postToken.substring(endIdx + 1);
+        } else {
+          parts.push("`");
+          remaining = postToken;
         }
-
-        currentText = currentText.substring(firstMatch.index + firstMatch.length);
-      } else {
-        tokens.push(currentText);
-        break;
       }
     }
 
-    return <>{tokens}</>;
+    return <>{parts}</>;
   };
 
   // Buffers for lists and tables
@@ -201,7 +236,9 @@ export function parseMarkdownToReact(text: unknown): React.ReactNode {
 
   const isTableLine = (line: string): boolean => {
     const trimmed = line.trim();
-    return trimmed.startsWith("|") && trimmed.split("|").length > 2;
+    const hasMultiplePipes = (trimmed.match(/\|/g) || []).length >= 2;
+    const isDivider = /^[|:\-\s]+$/.test(trimmed) && trimmed.includes("-") && trimmed.includes("|");
+    return hasMultiplePipes || isDivider;
   };
 
   lines.forEach((line, index) => {
