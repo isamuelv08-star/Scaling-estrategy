@@ -728,7 +728,6 @@ export default function App() {
             fetchHistory();
           }}
           historyCount={historyList.length}
-          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       ) : (
         <div className="animate-fade-in">
@@ -773,15 +772,6 @@ export default function App() {
               >
                 <History className="w-3.5 h-3.5 text-slate-400" />
                 <span>Historial ({historyList.length})</span>
-              </button>
-
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer"
-                title="Configuración de Conexión API / Supabase"
-              >
-                <Settings className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden sm:inline">Conexión API</span>
               </button>
             </div>
           </header>
