@@ -42,15 +42,15 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
   const [structuringStep, setStructuringStep] = useState<number>(0);
 
   const structuringLogs = [
-    "Iniciando Claude 3.5 Haiku para estructuración semántica...",
+    "Inicializando motor de diagnóstico empresarial...",
     "Validando datos de unit economics (Ticket Promedio: " + formData.ticketPromedio + ")...",
     "Analizando mayor obstáculo percibido: \"" + formData.obstaculo + "\"...",
     "Segmentando nicho comercial y público objetivo...",
-    "Creando blueprint XML optimizado para Claude 3.5 Sonnet...",
+    "Generando matriz de datos estratégicos optimizados...",
     "¡Perfil estructurado y listo para el análisis en profundidad!"
   ];
 
-  // Simulates Claude Haiku structuring sequence
+  // Simulates structuring sequence
   useEffect(() => {
     if (isStructuring) {
       const interval = setInterval(() => {
@@ -141,13 +141,13 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
         <div className="space-y-3 relative z-10 text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[9px] font-mono tracking-widest text-blue-400 font-bold uppercase">
             <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
-            CLAUDE 3.5 HAIKU • PROCESADOR ACTIVO
+            MOTOR ANALÍTICO • PROCESADOR ACTIVO
           </div>
           <h3 className="font-display text-base md:text-lg font-bold text-slate-100">
             Estructurando perfil de {formData.nombreNegocio || "tu empresa"}
           </h3>
           <p className="text-xs text-slate-400 font-light leading-relaxed">
-            Haiku está compilando los unit economics y el contexto del negocio para estructurar un blueprint XML limpio.
+            Analizando los unit economics y el contexto del negocio para estructurar una base de datos limpia.
           </p>
         </div>
 
@@ -174,7 +174,7 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
 
         {/* Info footer */}
         <div className="border-t border-slate-900 pt-4 flex items-center justify-between text-[10px] text-slate-500 font-mono relative z-10">
-          <span>COMPILADOR: V2.1_HAIKU</span>
+          <span>COMPILADOR: V2.1_CORE</span>
           <span>ESPERANDO RESPUESTA...</span>
         </div>
       </div>
@@ -206,7 +206,7 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
               ¡Hemos recibido la información de su negocio!
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed font-light">
-              Claude Haiku estructuró con éxito el modelo de <b>{formData.nombreNegocio}</b>. Para entregarte las tácticas más rentables y accionables, dinos: <b>¿Qué tipo de estrategia quieres que desarrollemos hoy?</b>
+              Se ha estructurado con éxito el modelo de <b>{formData.nombreNegocio}</b>. Para entregarte las tácticas más rentables y accionables, dinos: <b>¿Qué tipo de estrategia quieres que desarrollemos hoy?</b>
             </p>
           </div>
         </div>
@@ -215,7 +215,7 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
       {/* Grid of Strategy Options */}
       <div className="p-6 md:p-8 space-y-4 max-h-[58vh] overflow-y-auto">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-          Seleccione una estrategia para generar en Claude 3.5 Sonnet
+          Seleccione una estrategia para generar tácticas avanzadas
         </span>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,7 +254,7 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
 
       {/* Small informative Footer */}
       <div className="p-4 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 text-center font-mono uppercase">
-        Enviado a Claude 3.5 Sonnet de forma segura • Sin pérdida de contexto
+        Procesando datos de manera segura • Sin pérdida de contexto
       </div>
     </div>
   );

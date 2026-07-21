@@ -46,7 +46,6 @@ import { LiveGenerationTracker } from "./components/LiveGenerationTracker.tsx";
 import { WorkspaceControls } from "./components/WorkspaceControls.tsx";
 import { ROICalculator } from "./components/ROICalculator.tsx";
 import { HookGenerator } from "./components/HookGenerator.tsx";
-import { AnthropicPromptExporter } from "./components/AnthropicPromptExporter.tsx";
 import { StrategySelector } from "./components/StrategySelector.tsx";
 
 const LOADING_STATUSES = [
@@ -64,6 +63,81 @@ const LOADING_STATUSES = [
   "Definiendo cuadro de mando de KPIs (LTV, CAC, ROAS proyectado)...",
   "Evaluando riesgos del mercado y formulando planes de mitigación de contingencia..."
 ];
+
+const getSectionIcon = (id: string) => {
+  switch (id) {
+    case "diagnostico": return <Search className="w-5 h-5 text-blue-600" />;
+    case "comparativa": return <Briefcase className="w-5 h-5 text-indigo-600" />;
+    case "objetivos": return <Target className="w-5 h-5 text-emerald-600" />;
+    case "plan": return <FileText className="w-5 h-5 text-amber-600" />;
+    case "campanas": return <Coins className="w-5 h-5 text-purple-600" />;
+    case "calendario": return <Sparkles className="w-5 h-5 text-rose-600" />;
+    case "sistema": return <Sliders className="w-5 h-5 text-blue-600" />;
+    default: return <CheckCircle2 className="w-5 h-5 text-blue-600" />;
+  }
+};
+
+const getEndingMessageForStrategy = (strategyType: string, businessName: string) => {
+  switch (strategyType) {
+    case "completa":
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a tener un sistema de adquisición y crecimiento 360° altamente predecible, rentable y sostenible en el tiempo.`;
+    case "contenido":
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a tener un flujo constante, orgánico y sostenible de prospectos calificados mediante Inbound Marketing y contenido de alto impacto.`;
+    case "pago":
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a tener un motor predecible y sostenible de captación de clientes a través de campañas de pauta digital optimizadas.`;
+    case "escalabilidad":
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a estructurar un modelo de negocio con unit economics sólidos, márgenes saludables y crecimiento financiero sostenible.`;
+    case "comercial":
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a tener un protocolo comercial de ventas optimizado, garantizando cierres veloces y un seguimiento CRM sostenible.`;
+    case "copywriting":
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a contar con una maquinaria de persuasión y respuesta directa altamente efectiva para embudos sostenibles.`;
+    default:
+      return `¡Fin! Con esto, ${businessName} va por el camino correcto a tener un modelo comercial ordenado, rentable y sostenible en el tiempo.`;
+  }
+};
+
+const cleanSectionContent = (text: string) => {
+  if (!text) return "";
+  const lines = text.split("\n");
+  let foundHeadingIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith("## ")) {
+      foundHeadingIndex = i;
+      break;
+    } else if (trimmed !== "") {
+      break;
+    }
+  }
+  if (foundHeadingIndex !== -1) {
+    lines.splice(foundHeadingIndex, 1);
+  }
+  return lines.join("\n").trim();
+};
+
+const renderCleanSummary = (text: string) => {
+  if (!text) return null;
+  let cleaned = text
+    .replace(/#{1,6}\s?/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .trim();
+  return (
+    <div className="p-6 md:p-8 bg-slate-900 rounded-3xl text-white shadow-lg space-y-3 relative overflow-hidden my-6 border border-slate-800 print:bg-white print:text-slate-900 print:border print:border-slate-300 animate-fade-in">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none print:hidden" />
+      <span className="text-[9px] font-mono tracking-widest text-blue-400 font-bold uppercase block print:text-blue-600">
+        SÍNTESIS ESTRATÉGICA EJECUTIVA
+      </span>
+      <p className="font-serif text-sm md:text-base leading-relaxed text-slate-100 font-light italic print:text-slate-850">
+        "{cleaned}"
+      </p>
+      <div className="pt-2.5 border-t border-slate-800/80 flex items-center gap-2 text-[10px] text-slate-400 print:border-slate-200">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse print:bg-emerald-600" />
+        <span>Modelo listo para ejecución y monitoreo táctico</span>
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   // Enhanced Form State - Onboarding questionnaire
@@ -110,7 +184,7 @@ export default function App() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(-1);
   const [generationStatus, setGenerationStatus] = useState<"idle" | "selecting" | "generating" | "paused" | "error" | "finished">("idle");
   const [selectedStrategyType, setSelectedStrategyType] = useState<string>("completa");
-  const [activeTab, setActiveTab] = useState<"strategy" | "roi" | "hooks" | "anthropic">("strategy");
+  const [activeTab, setActiveTab] = useState<"strategy" | "roi" | "hooks">("strategy");
   const [errorMessage, setErrorMessage] = useState<string>("");
   
   // Dynamic loading message index
@@ -875,6 +949,9 @@ export default function App() {
                     setWizardStep(1);
                   }}
                   startNewStrategy={startNewStrategy}
+                  onSelectOtherStrategy={() => {
+                    setGenerationStatus("selecting");
+                  }}
                 />
               )}
             </div>
@@ -926,17 +1003,6 @@ export default function App() {
                     <Sparkles className="w-4 h-4 text-yellow-500" />
                     <span>Ganchos de Venta</span>
                   </button>
-                  <button
-                    onClick={() => setActiveTab("anthropic")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
-                      activeTab === "anthropic"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Cpu className="w-4 h-4 text-indigo-600" />
-                    <span>Prompt Anthropic</span>
-                  </button>
                 </div>
               )}
 
@@ -987,9 +1053,7 @@ export default function App() {
                   {/* Content Section Sheet */}
                   <div className="space-y-8">
                     {resumen ? (
-                      <div className="p-5 bg-blue-50/60 border-l-4 border-blue-600 rounded-r-2xl shadow-sm italic text-xs md:text-sm text-slate-900 leading-relaxed">
-                        "{resumen}"
-                      </div>
+                      renderCleanSummary(resumen)
                     ) : (
                       generationStatus === "idle" && formData.nombreNegocio && (
                         <div className="p-4 bg-slate-50 border border-slate-200/60 border-dashed rounded-2xl text-xs text-slate-600 italic">
@@ -1005,10 +1069,20 @@ export default function App() {
                         const isCurrent = currentSectionIndex === index;
 
                         if (completedContent) {
+                           const cleanedText = cleanSectionContent(completedContent);
                            return (
-                             <div key={sec.id} className="animate-fade-in border-t border-slate-100 pt-6 first:border-0 first:pt-0">
-                               <div className="prose max-w-none text-xs md:text-sm">
-                                 {parseMarkdownToReact(completedContent)}
+                             <div key={sec.id} className="animate-fade-in bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 space-y-4 print:border-none print:shadow-none print:p-0 print:border-b print:border-slate-250 print:pb-8">
+                               <div className="flex items-center gap-3 pb-3 border-b border-slate-100 print:pb-2">
+                                 <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-150 print:hidden text-slate-700">
+                                   {getSectionIcon(sec.id)}
+                                 </div>
+                                 <div>
+                                   <span className="text-[9px] font-mono font-bold tracking-widest text-slate-400 block uppercase print:hidden">SECCIÓN COMPLETADA</span>
+                                   <h3 className="font-display text-sm md:text-base font-bold text-slate-900 tracking-tight print:text-black">{sec.name}</h3>
+                                 </div>
+                               </div>
+                               <div className="prose max-w-none text-xs md:text-sm font-normal text-slate-700 leading-relaxed space-y-4 print:text-black">
+                                 {parseMarkdownToReact(cleanedText)}
                                </div>
                              </div>
                            );
@@ -1023,7 +1097,7 @@ export default function App() {
                                  </div>
                                  <h4 className="font-bold text-slate-700">{sec.name}</h4>
                                  <span className="text-[9px] font-mono bg-slate-100 px-2 py-0.5 rounded ml-auto">Borrador en Cola</span>
-                               </div>
+                                </div>
                                <p className="text-[11px] text-slate-400 pl-7 leading-relaxed font-light">
                                  Recomendaciones tácticas hiper-personalizadas para {formData.nombreNegocio || "su empresa"} enfocadas en potenciar {formData.productoEstrella || "su producto estrella"} con la máxima rentabilidad comercial.
                                </p>
@@ -1049,6 +1123,24 @@ export default function App() {
                         return null;
                       })}
                     </div>
+
+                    {/* Custom celebratory finish card with custom message per strategy */}
+                    {generationStatus === "finished" && (
+                      <div className="mt-12 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl flex flex-col md:flex-row items-center gap-6 animate-fade-in print:bg-white print:text-slate-900 print:border print:border-slate-300">
+                        <div className="p-3.5 bg-white/10 rounded-2xl shrink-0 print:border print:border-slate-300">
+                          <Award className="w-8 h-8 text-white animate-bounce print:text-indigo-600" />
+                        </div>
+                        <div className="space-y-1.5 text-center md:text-left flex-1">
+                          <span className="text-[9px] font-mono tracking-[0.25em] text-blue-200 font-bold uppercase block print:text-slate-500">DIAGNÓSTICO ESTRATÉGICO FINALIZADO</span>
+                          <h4 className="text-sm md:text-base font-bold tracking-tight text-white leading-tight print:text-slate-900">
+                            ¡Felicitaciones! Plan Táctico Concluido con Éxito
+                          </h4>
+                          <p className="text-xs md:text-sm text-blue-50/90 leading-relaxed font-light print:text-slate-700">
+                            {getEndingMessageForStrategy(selectedStrategyType, formData.nombreNegocio || "su empresa")}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer metadata */}
@@ -1060,10 +1152,8 @@ export default function App() {
                 </article>
               ) : activeTab === "roi" ? (
                 <ROICalculator formData={formData} />
-              ) : activeTab === "hooks" ? (
-                <HookGenerator formData={formData} />
               ) : (
-                <AnthropicPromptExporter formData={formData} />
+                <HookGenerator formData={formData} />
               )}
 
               {/* Error recovery block */}
@@ -1074,7 +1164,7 @@ export default function App() {
                     <div className="space-y-1">
                       <h4 className="text-xs font-bold text-slate-950 uppercase tracking-wide">Error en Redacción / Conexión Pausada</h4>
                       <p className="text-xs text-slate-600 leading-relaxed">
-                        Se ha pausado la redacción debido a límites de tasa de Claude o a un problema temporal de conexión. Las secciones generadas hasta el momento han sido preservadas intactas en la hoja estratégica. Puede reintentar la reanudación para terminar el análisis.
+                        Se ha pausado la redacción debido a límites de tasa de servicio o a un problema temporal de conexión. Las secciones generadas hasta el momento han sido preservadas intactas en la hoja estratégica. Puede reintentar la reanudación para terminar el análisis.
                       </p>
                       <p className="text-[10px] font-mono text-red-700 bg-red-100/50 p-2 rounded border border-red-200/60 overflow-x-auto mt-2">
                         {errorMessage}
@@ -1087,7 +1177,7 @@ export default function App() {
                       className="flex items-center gap-1.5 py-2 px-4 bg-slate-800 text-white font-semibold text-xs rounded-xl hover:bg-slate-900 transition cursor-pointer shadow-md"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      Reanudar Redacción con Claude
+                      Reanudar Redacción
                     </button>
                   </div>
                 </div>

@@ -71,7 +71,7 @@ export const LiveGenerationTracker: React.FC<LiveGenerationTrackerProps> = ({
       {/* Titles */}
       <div className="space-y-2 text-center">
         <span className="text-[9px] font-mono tracking-[0.2em] text-blue-600 font-bold uppercase block">
-          CLAUDE 3.5 SONNET • REDACTANDO EN VIVO
+          INTELIGENCIA ESTRATÉGICA • REDACTANDO EN VIVO
         </span>
         <h4 className="text-base font-bold text-slate-900 leading-snug">
           {strategyName}

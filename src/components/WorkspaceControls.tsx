@@ -12,6 +12,7 @@ interface WorkspaceControlsProps {
   saveSuccess: boolean;
   onEditOnboarding: () => void;
   startNewStrategy: () => void;
+  onSelectOtherStrategy: () => void;
 }
 
 export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({
@@ -24,6 +25,7 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({
   saveSuccess,
   onEditOnboarding,
   startNewStrategy,
+  onSelectOtherStrategy,
 }) => {
   return (
     <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl p-6 md:p-8 space-y-6 animate-fade-in">
@@ -119,22 +121,30 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({
       </div>
 
       {/* Form editing and new buttons */}
-      <div className="border-t border-slate-100 pt-4 flex gap-3">
+      <div className="border-t border-slate-100 pt-4 space-y-2">
         <button
-          onClick={onEditOnboarding}
-          className="flex-1 flex items-center justify-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2.5 px-3 rounded-xl text-[11px] font-bold transition cursor-pointer"
+          onClick={onSelectOtherStrategy}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-display text-xs font-bold transition cursor-pointer border border-indigo-150 shadow-sm"
         >
-          <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-          Editar Onboarding
+          <RotateCcw className="w-4 h-4 text-indigo-500 animate-spin-slow" />
+          Elegir otra estrategia
         </button>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onEditOnboarding}
+            className="flex-1 flex items-center justify-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2.5 px-3 rounded-xl text-[11px] font-bold transition cursor-pointer"
+          >
+            Editar Onboarding
+          </button>
 
-        <button
-          onClick={startNewStrategy}
-          className="flex-1 flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2.5 px-3 rounded-xl text-[11px] font-bold transition cursor-pointer"
-        >
-          <PlusCircle className="w-3.5 h-3.5 text-blue-400" />
-          Nueva Estrategia
-        </button>
+          <button
+            onClick={startNewStrategy}
+            className="flex-1 flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2.5 px-3 rounded-xl text-[11px] font-bold transition cursor-pointer"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-blue-400" />
+            Nueva Estrategia
+          </button>
+        </div>
       </div>
     </div>
   );
