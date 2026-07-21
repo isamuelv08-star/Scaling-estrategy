@@ -3,7 +3,7 @@ import React from "react";
 /**
  * Parses simple Markdown text into highly styled React JSX nodes.
  * Supports ## (h2), ### (h3), - or * (lists with items grouped together),
- * and **bold** formatting with beautiful colors and spacing.
+ * and **bold** formatting with beautiful colors and spacing for a premium light layout.
  */
 export function parseMarkdownToReact(text: string): React.ReactNode {
   if (!text) return null;
@@ -16,7 +16,7 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
     return parts.map((part, index) => {
       if (index % 2 === 1) {
         return (
-          <strong key={index} className="text-brand-gold font-semibold">
+          <strong key={index} className="text-slate-900 font-extrabold bg-blue-50/50 px-1 py-0.5 rounded">
             {part}
           </strong>
         );
@@ -33,7 +33,7 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
       elements.push(
         <ul
           key={`list-${key}`}
-          className="list-disc pl-6 my-4 space-y-2 text-brand-cream/90 text-sm md:text-base leading-relaxed"
+          className="list-disc pl-6 my-5 space-y-2.5 text-slate-700 text-sm md:text-base leading-relaxed"
         >
           {listItems}
         </ul>
@@ -52,8 +52,9 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
       elements.push(
         <h2
           key={index}
-          className="font-serif text-2xl md:text-3xl font-bold mt-8 mb-4 text-brand-gold tracking-tight border-b border-brand-green/30 pb-2"
+          className="font-display text-xl md:text-2xl font-bold mt-10 mb-5 text-slate-900 tracking-tight border-b border-slate-100 pb-2.5 flex items-center gap-2"
         >
+          <span className="w-1.5 h-6 bg-blue-600 rounded-full inline-block shrink-0" />
           {parseInlineBold(content)}
         </h2>
       );
@@ -63,7 +64,7 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
       elements.push(
         <h3
           key={index}
-          className="font-serif text-lg md:text-xl font-semibold mt-6 mb-3 text-white tracking-normal border-l-2 border-brand-green pl-3"
+          className="font-display text-base md:text-lg font-bold mt-7 mb-3 text-blue-600 tracking-normal border-l-2 border-blue-500 pl-3.5"
         >
           {parseInlineBold(content)}
         </h3>
@@ -72,7 +73,7 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
       inList = true;
       const content = trimmedLine.slice(2);
       listItems.push(
-        <li key={`li-${index}`} className="leading-relaxed hover:text-white transition-colors duration-200">
+        <li key={`li-${index}`} className="leading-relaxed text-slate-700 hover:text-slate-900 transition-colors duration-150">
           {parseInlineBold(content)}
         </li>
       );
@@ -83,7 +84,7 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
       elements.push(
         <p
           key={index}
-          className="text-brand-cream/90 text-sm md:text-base leading-relaxed mb-4 font-light"
+          className="text-slate-600 text-sm md:text-base leading-relaxed mb-5 font-normal"
         >
           {parseInlineBold(trimmedLine)}
         </p>
@@ -94,5 +95,5 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
   // Flush any remaining list items at the end
   flushList(lines.length);
 
-  return <div className="space-y-2">{elements}</div>;
+  return <div className="space-y-1.5">{elements}</div>;
 }
