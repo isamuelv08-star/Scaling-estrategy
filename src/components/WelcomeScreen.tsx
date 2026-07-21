@@ -1,17 +1,19 @@
 import React from "react";
-import { Sparkles, ArrowRight, Coins, Search, Target, Award } from "lucide-react";
+import { Sparkles, ArrowRight, Coins, Search, Target, Award, Sliders } from "lucide-react";
 import { FormData } from "../utils/prompts";
 
 interface WelcomeScreenProps {
   onStart: (initialData: FormData) => void;
   onOpenHistory: () => void;
   historyCount: number;
+  onOpenSettings: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onStart,
   onOpenHistory,
   historyCount,
+  onOpenSettings,
 }) => {
   const handleGenerate = () => {
     onStart({
@@ -69,6 +71,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           >
             Generar una Estrategia
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </button>
+
+          <button
+            onClick={onOpenSettings}
+            className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-display text-xs font-bold px-6 py-4.5 rounded-2xl border border-slate-200 transition duration-200 cursor-pointer"
+          >
+            <Sliders className="w-4 h-4 text-slate-500" />
+            Configurar Conexión API / Supabase
           </button>
         </div>
 

@@ -28,11 +28,17 @@ import {
   Users,
   Database,
   ArrowDownToLine,
-  ExternalLink
+  ExternalLink,
+  Sliders,
+  Settings,
+  Server,
+  Cloud,
+  RefreshCw
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
 import { WelcomeScreen } from "./components/WelcomeScreen.tsx";
+import { createClient } from "@supabase/supabase-js";
 import { OnboardingWizard } from "./components/OnboardingWizard.tsx";
 import { LiveGenerationTracker } from "./components/LiveGenerationTracker.tsx";
 import { WorkspaceControls } from "./components/WorkspaceControls.tsx";
@@ -108,37 +114,159 @@ export default function App() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
-  // Platform API Mode State
-  const [apiMode] = useState<"local" | "supabase">(() => {
-    if ((import.meta as any).env.VITE_SUPABASE_URL) return "supabase";
-    return "local";
+  // Platform API Mode State (Strictly Supabase, falling back to localStorage, then environment variables)
+  const [supabaseUrl, setSupabaseUrlState] = useState<string>(() => {
+    return localStorage.getItem("scaling_supabase_url") || (import.meta as any).env.VITE_SUPABASE_URL || "";
   });
-  const [supabaseUrl] = useState<string>(() => {
-    return (import.meta as any).env.VITE_SUPABASE_URL || "";
-  });
-  const [supabaseAnonKey] = useState<string>(() => {
-    return (import.meta as any).env.VITE_SUPABASE_ANON_KEY || "";
+  const [supabaseAnonKey, setSupabaseAnonKeyState] = useState<string>(() => {
+    return localStorage.getItem("scaling_supabase_anon_key") || (import.meta as any).env.VITE_SUPABASE_ANON_KEY || "";
   });
 
-  const getApiConfig = () => {
-    if (apiMode === "supabase" && supabaseUrl) {
-      const baseUrl = supabaseUrl.replace(/\/$/, "");
-      const url = `${baseUrl}/functions/v1/estrategias-api`;
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json"
-      };
-      if (supabaseAnonKey) {
-        headers["Authorization"] = `Bearer ${supabaseAnonKey}`;
-        headers["apikey"] = supabaseAnonKey;
-      }
-      return { url, headers };
-    } else {
-      return {
-        url: "/api/estrategias",
-        headers: {
-          "Content-Type": "application/json"
+  // Settings overlay state
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [tempSupabaseUrl, setTempSupabaseUrl] = useState<string>("");
+  const [tempSupabaseAnonKey, setTempSupabaseAnonKey] = useState<string>("");
+
+  useEffect(() => {
+    if (isSettingsOpen) {
+      setTempSupabaseUrl(supabaseUrl);
+      setTempSupabaseAnonKey(supabaseAnonKey);
+      setConnectionTestResult(null);
+    }
+  }, [isSettingsOpen, supabaseUrl, supabaseAnonKey]);
+
+  const updateApiSettings = (url: string, key: string) => {
+    localStorage.setItem("scaling_supabase_url", url);
+    localStorage.setItem("scaling_supabase_anon_key", key);
+    setSupabaseUrlState(url);
+    setSupabaseAnonKeyState(key);
+  };
+
+  // Helper to initialize and retrieve Supabase Client
+  const getSupabaseClient = () => {
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+    try {
+      return createClient(supabaseUrl, supabaseAnonKey);
+    } catch (err) {
+      console.error("Error al instanciar el cliente Supabase:", err);
+      return null;
+    }
+  };
+
+  // Generic direct function invocation
+  const invokeEdgeFunction = async (body: any) => {
+    const client = getSupabaseClient();
+    if (!client) {
+      throw new Error("Supabase no está configurado. Por favor ingrese la URL y Anon Key válidos.");
+    }
+    const { data, error } = await client.functions.invoke("estrategias-api", {
+      body
+    });
+    if (error) {
+      throw new Error(error.message || String(error));
+    }
+    return data;
+  };
+
+  // Helper fetch with automatic retry & exponential backoff on 429/503/529 using Supabase JS SDK
+  const invokeEdgeFunctionWithRetry = async (
+    body: any,
+    onRetry: (attempt: number, delay: number, errorMsg: string) => void,
+    maxAttempts = 5
+  ): Promise<any> => {
+    let attempt = 1;
+    let delay = 3000; // start with 3s wait
+
+    const client = getSupabaseClient();
+    if (!client) {
+      throw new Error("Supabase no está configurado. Por favor, ingrese la URL y la Anon Key de Supabase en la configuración.");
+    }
+
+    while (true) {
+      try {
+        const response = await client.functions.invoke("estrategias-api", {
+          body
+        });
+        const { data, error } = response;
+        const status = (response as any).status;
+
+        if (error) {
+          if (status === 429 || status === 503 || status === 529) {
+            if (attempt >= maxAttempts) {
+              throw new Error(error.message || `Error HTTP ${status}`);
+            }
+            const errorMsg = `HTTP ${status}: Límite de cuota o servicio congestionado.`;
+            onRetry(attempt, delay, errorMsg);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            attempt++;
+            delay *= 2; // exponential backoff
+            continue;
+          }
+          throw new Error(error.message || `Error HTTP ${status}`);
         }
-      };
+
+        return data;
+      } catch (error: any) {
+        if (attempt >= maxAttempts) {
+          throw error;
+        }
+        const errorMsg = error?.message || String(error);
+        onRetry(attempt, delay, `Fallo de conexión: ${errorMsg}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        attempt++;
+        delay *= 2;
+      }
+    }
+  };
+
+  // Connection Testing State & Handler
+  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const testConnection = async (testUrl: string, testKey: string) => {
+    if (!testUrl) {
+      setConnectionTestResult({ success: false, message: "Por favor, ingrese la URL de Supabase para realizar la prueba." });
+      return;
+    }
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+
+    try {
+      const baseUrl = testUrl.trim().replace(/\/$/, "");
+      const url = `${baseUrl}/functions/v1/estrategias-api`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${testKey.trim()}`,
+          "apikey": testKey.trim()
+        },
+        body: JSON.stringify({ action: "list" })
+      });
+
+      if (response.ok) {
+        setConnectionTestResult({
+          success: true,
+          message: "¡Conexión exitosa! El Edge Function de Supabase está activo, autenticado y respondiendo correctamente."
+        });
+      } else {
+        let errMsg = "Error desconocido";
+        try {
+          const errData = await response.json();
+          errMsg = errData?.error || errMsg;
+        } catch {}
+        setConnectionTestResult({
+          success: false,
+          message: `Código HTTP ${response.status}: ${errMsg}. Verifique que el Anon Key sea correcto y que el Edge Function esté habilitado.`
+        });
+      }
+    } catch (err: any) {
+      setConnectionTestResult({
+        success: false,
+        message: `Fallo de conexión: ${err?.message || String(err)}. Verifique que la URL de Supabase sea válida y que el servidor tenga acceso a internet o que no esté bloqueado por CORS.`
+      });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -149,7 +277,7 @@ export default function App() {
   // Load history list on startup
   useEffect(() => {
     fetchHistory();
-  }, [apiMode, supabaseUrl, supabaseAnonKey]);
+  }, [supabaseUrl, supabaseAnonKey]);
 
   // Auto scroll to active generating section
   useEffect(() => {
@@ -182,15 +310,10 @@ export default function App() {
   };
 
   const fetchHistory = async () => {
+    if (!supabaseUrl || !supabaseAnonKey) return;
     try {
-      const { url, headers } = getApiConfig();
-      const response = await fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ action: "list" })
-      });
-      const data = await response.json();
-      if (response.ok && data.estrategias) {
+      const data = await invokeEdgeFunction({ action: "list" });
+      if (data && data.estrategias) {
         setHistoryList(data.estrategias);
       }
     } catch (err) {
@@ -336,27 +459,14 @@ export default function App() {
           payload.tools = [{ type: "web_search_20250305", name: "web_search" }];
         }
 
-        const { url: apiSectionUrl, headers: apiSectionHeaders } = getApiConfig();
-        const response = await fetchWithRetry(
-          apiSectionUrl,
-          {
-            method: "POST",
-            headers: apiSectionHeaders,
-            body: JSON.stringify(payload)
-          },
+        const data = await invokeEdgeFunctionWithRetry(
+          payload,
           (attempt, delay, errorMsg) => {
             setRetryInfo({ attempt, delay, errorMsg });
           }
         );
 
         setRetryInfo(null);
-
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData?.error || `Error en sección: ${currentSection.name}`);
-        }
-
-        const data = await response.json();
 
         // Extract text from content blocks
         if (!data.content || !Array.isArray(data.content)) {
@@ -393,18 +503,12 @@ export default function App() {
 
       const summaryPromptText = SUMMARY_PROMPT(formData, fullContentText);
 
-      const { url: apiSumUrl, headers: apiSumHeaders } = getApiConfig();
-      const summaryResponse = await fetchWithRetry(
-        apiSumUrl,
+      const summaryData = await invokeEdgeFunctionWithRetry(
         {
-          method: "POST",
-          headers: apiSumHeaders,
-          body: JSON.stringify({
-            action: "generate",
-            system: "Eres el Socio Director de Scaling Strategy. Tu especialidad es sintetizar reportes densos en resúmenes sumamente persuasivos, profesionales y precisos.",
-            messages: [{ role: "user", content: summaryPromptText }],
-            max_tokens: 1000
-          })
+          action: "generate",
+          system: "Eres el Socio Director de Scaling Strategy. Tu especialidad es sintetizar reportes densos en resúmenes sumamente persuasivos, profesionales y precisos.",
+          messages: [{ role: "user", content: summaryPromptText }],
+          max_tokens: 1000
         },
         (attempt, delay, errorMsg) => {
           setRetryInfo({ attempt, delay, errorMsg });
@@ -413,12 +517,10 @@ export default function App() {
 
       setRetryInfo(null);
 
-      if (!summaryResponse.ok) {
-        const errData = await summaryResponse.json();
-        throw new Error(errData?.error || "Error generando el Resumen Ejecutivo.");
+      if (!summaryData.content || !Array.isArray(summaryData.content)) {
+        throw new Error("Respuesta de resumen inválida recibida de la API");
       }
 
-      const summaryData = await summaryResponse.json();
       const summaryText = summaryData.content
         .filter((block: any) => block.type === "text")
         .map((block: any) => block.text)
@@ -449,28 +551,22 @@ export default function App() {
 
     setIsSaving(true);
     try {
-      const { url, headers } = getApiConfig();
-      const response = await fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({
-          action: "save",
-          nombreNegocio: formData.nombreNegocio,
-          rubro: formData.rubro,
-          formData: formData,
-          secciones: sections,
-          resumen: resumen
-        })
+      const data = await invokeEdgeFunction({
+        action: "save",
+        nombreNegocio: formData.nombreNegocio,
+        rubro: formData.rubro,
+        formData: formData,
+        secciones: sections,
+        resumen: resumen
       });
 
-      const data = await response.json();
-      if (response.ok && data.id) {
+      if (data && data.id) {
         setSaveSuccess(true);
         triggerToast("Estrategia guardada en el historial corporativo", "success");
         fetchHistory(); // refresh history list
         setSelectedHistoryId(data.id);
       } else {
-        throw new Error(data?.error || "Error al guardar");
+        throw new Error("Error al guardar la estrategia");
       }
     } catch (err: any) {
       triggerToast(err?.message || "No se pudo guardar la estrategia.", "error");
@@ -489,14 +585,8 @@ export default function App() {
     setIsHistoryOpen(false); // Close history sidebar drawer
 
     try {
-      const { url, headers } = getApiConfig();
-      const response = await fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ action: "get", id })
-      });
-      const data = await response.json();
-      if (response.ok && data.estrategia) {
+      const data = await invokeEdgeFunction({ action: "get", id });
+      if (data && data.estrategia) {
         const est = data.estrategia;
         // set form data
         if (est.form_data) {
@@ -638,6 +728,7 @@ export default function App() {
             fetchHistory();
           }}
           historyCount={historyList.length}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       ) : (
         <div className="animate-fade-in">
@@ -681,7 +772,16 @@ export default function App() {
                 className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer"
               >
                 <History className="w-3.5 h-3.5 text-slate-400" />
-                Historial ({historyList.length})
+                <span>Historial ({historyList.length})</span>
+              </button>
+
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer"
+                title="Configuración de Conexión API / Supabase"
+              >
+                <Settings className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Conexión API</span>
               </button>
             </div>
           </header>
@@ -895,7 +995,7 @@ export default function App() {
 
           {/* Footer info line inside workspace */}
           <footer className="max-w-[1550px] mx-auto px-4 py-8 md:px-8 border-t border-slate-100 text-center text-[10px] text-slate-400 font-mono flex items-center justify-between">
-            <span>PLATFORM MODE: {apiMode.toUpperCase()}</span>
+            <span>PLATFORM: SUPABASE</span>
             <span>© SCALING STRATEGY IA. TODOS LOS DERECHOS RESERVADOS.</span>
           </footer>
         </div>
@@ -979,6 +1079,133 @@ export default function App() {
             <div className="border-t border-slate-100 pt-4 text-[10px] text-slate-400 font-mono flex items-center justify-between">
               <span>TOTAL REGISTROS: {historyList.length}</span>
               <span>SCALING STRATEGY</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SETTINGS AND API CONFIGURATION MODAL */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/80 p-6 md:p-8 space-y-6 animate-fade-in text-left">
+            {/* Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-blue-600" />
+                <h3 className="font-display text-base font-bold tracking-tight text-slate-900">
+                  Configuración de Conexión Supabase
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsSettingsOpen(false)}
+                className="text-slate-400 hover:text-slate-900 p-1.5 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+                aria-label="Cerrar configuración"
+              >
+                <X className="w-4.5 h-4.5" />
+              </button>
+            </div>
+
+            {/* Inputs para Supabase */}
+            <div className="space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-150 animate-fade-in">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
+                  Parámetros de Proyecto Supabase
+                </span>
+                <p className="text-[10px] text-slate-500 leading-normal">
+                  La aplicación se conecta exclusivamente a su base de datos Supabase remota y ejecuta las Edge Functions de IA sin depender de servidores locales. Estos valores se guardarán únicamente en el almacenamiento local de su navegador (localStorage).
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-700 block">
+                  Supabase Project URL
+                </label>
+                <div className="relative">
+                  <Database className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="url"
+                    value={tempSupabaseUrl}
+                    onChange={(e) => setTempSupabaseUrl(e.target.value)}
+                    placeholder="https://su-proyecto-id.supabase.co"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-700 block">
+                  Supabase Anon Key / API Key
+                </label>
+                <div className="relative">
+                  <Settings className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="password"
+                    value={tempSupabaseAnonKey}
+                    onChange={(e) => setTempSupabaseAnonKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Prueba de conexión */}
+              <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <button
+                  type="button"
+                  disabled={isTestingConnection}
+                  onClick={() => testConnection(tempSupabaseUrl, tempSupabaseAnonKey)}
+                  className="inline-flex items-center justify-center gap-1.5 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-slate-800 text-[10px] font-bold py-2.5 px-4 rounded-xl transition cursor-pointer"
+                >
+                  {isTestingConnection ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Probando Conexión...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Probar Conexión
+                    </>
+                  )}
+                </button>
+
+                {connectionTestResult && (
+                  <div className="flex items-start gap-1.5 flex-1 text-left">
+                    {connectionTestResult.success ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                    )}
+                    <p className={`text-[10px] leading-tight font-medium ${
+                      connectionTestResult.success ? "text-green-700" : "text-red-700"
+                    }`}>
+                      {connectionTestResult.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Acciones de pie */}
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateApiSettings(tempSupabaseUrl, tempSupabaseAnonKey);
+                  setIsSettingsOpen(false);
+                  triggerToast("Configuración de Supabase guardada y aplicada", "success");
+                }}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-md shadow-blue-600/10"
+              >
+                Guardar Configuración
+              </button>
             </div>
           </div>
         </div>
