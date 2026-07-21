@@ -87,7 +87,7 @@ serve(async (req) => {
     if (action === "generate") {
       const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
       if (!anthropicApiKey) {
-        return new Response(JSON.stringify({ error: "Falta configurar ANTHROPIC_API_KEY en Supabase" }), {
+        return new Response(JSON.stringify({ error: "Falta configurar ANTHROPIC_API_KEY en Supabase." }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
         });
@@ -95,24 +95,31 @@ serve(async (req) => {
 
       const { system, messages, tools, max_tokens } = body;
 
-      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: max_tokens || 2000,
-          system,
-          messages,
-          ...(tools ? { tools } : {}),
-        }),
-      });
+      try {
+        const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": anthropicApiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: max_tokens || 1500, // Optimized token limit
+            system,
+            messages,
+            ...(tools ? { tools } : {}),
+          }),
+        });
 
-      const data = await anthropicRes.json();
-      if (!anthropicRes.ok) {
+        const data = await anthropicRes.json();
+        if (anthropicRes.ok) {
+          return new Response(JSON.stringify(data), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+        
         return new Response(JSON.stringify({
           error: data?.error?.message || "Error llamando a Anthropic",
           status: anthropicRes.status,
@@ -120,12 +127,14 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: anthropicRes.status,
         });
+      } catch (err) {
+        return new Response(JSON.stringify({
+          error: "Error de conexión llamando a Anthropic: " + String(err)
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        });
       }
-
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
     }
 
     return new Response(JSON.stringify({ error: "Acción no reconocida" }), {

@@ -47,13 +47,16 @@ app.options("/api/estrategias", (req, res) => {
 });
 
 async function handleGenerate(req: express.Request, res: express.Response) {
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: "Falta configurar ANTHROPIC_API_KEY en los secrets del proyecto" });
-  }
   const { system, messages, tools, max_tokens } = req.body;
 
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: "Falta configurar la clave ANTHROPIC_API_KEY en los secrets." });
+  }
+
   try {
+    console.log("Generando con Anthropic (Claude)...");
+    const anthropicModel = "claude-3-5-sonnet-20241022";
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -62,8 +65,8 @@ async function handleGenerate(req: express.Request, res: express.Response) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6", // As required by the user's brief
-        max_tokens: max_tokens || 2000,
+        model: anthropicModel,
+        max_tokens: max_tokens || 1500, // Optimized default token output limit to avoid rate limits
         system,
         messages,
         ...(tools ? { tools } : {}),
@@ -71,15 +74,18 @@ async function handleGenerate(req: express.Request, res: express.Response) {
     });
 
     const data = await anthropicRes.json() as any;
-    if (!anthropicRes.ok) {
-      return res.status(anthropicRes.status).json({
-        error: data?.error?.message || "Error llamando a Anthropic",
-        status: anthropicRes.status,
-      });
+    if (anthropicRes.ok) {
+      console.log("Generación con Anthropic exitosa.");
+      return res.status(200).json(data);
     }
-    return res.status(200).json(data);
+    
+    return res.status(anthropicRes.status).json({
+      error: data?.error?.message || "Error llamando a Anthropic",
+      status: anthropicRes.status,
+    });
   } catch (err) {
-    return res.status(500).json({ error: "Network error calling Anthropic API: " + String(err) });
+    console.error("Error llamando a Anthropic:", err);
+    return res.status(500).json({ error: "Error de red llamando a la API de Anthropic: " + String(err) });
   }
 }
 

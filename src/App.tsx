@@ -305,9 +305,19 @@ export default function App() {
         const currentSection = SECTIONS_CONFIG[i];
         setCurrentSectionIndex(i);
 
-        // Gather previous text as context to keep consistency
+        // OPTIMIZED TOKEN OVERHEAD: Only pass relevant preceding sections as context
+        const contextMap: Record<string, string[]> = {
+          diagnostico: [],
+          comparativa: ["diagnostico"],
+          objetivos: ["diagnostico"],
+          plan: ["objetivos"],
+          campanas: ["plan"],
+          calendario: ["campanas"],
+          sistema: ["plan", "campanas"]
+        };
+        const neededIds = contextMap[currentSection.id] || [];
         const previousContextText = SECTIONS_CONFIG
-          .slice(0, i)
+          .filter(sec => neededIds.includes(sec.id))
           .map(sec => currentSectionsState[sec.id] || "")
           .filter(text => text !== "")
           .join("\n\n");
@@ -318,7 +328,7 @@ export default function App() {
           action: "generate",
           system: "Eres el Consultor Principal de Scaling Strategy, una firma premium de consultoría de crecimiento y aceleración empresarial para PyMEs. Responde con altísimo nivel estratégico, de manera asertiva, denso en valor práctico, usando un vocabulario corporativo sofisticado de negocios y estructurando tu respuesta estrictamente en un español elegante y profesional.",
           messages: [{ role: "user", content: promptText }],
-          max_tokens: 3000
+          max_tokens: 1500 // Optimized from 3000 to 1500 to keep responses focused and avoid timeouts or connection pauses
         };
 
         // Inject Anthropic native web search tool for Section 2 (Comparativa de Mercado)
@@ -348,7 +358,7 @@ export default function App() {
 
         const data = await response.json();
 
-        // Extract text from Anthropic content blocks
+        // Extract text from content blocks
         if (!data.content || !Array.isArray(data.content)) {
           throw new Error("Respuesta inválida recibida de la API");
         }
@@ -369,9 +379,9 @@ export default function App() {
         };
         setSections(currentSectionsState);
 
-        // Pause for ~1.5 seconds between requests to mitigate rate limits
+        // Pause briefly between requests to mitigate rate limits
         if (i < SECTIONS_CONFIG.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
 
@@ -860,9 +870,9 @@ export default function App() {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-950 uppercase tracking-wide">Error en Redacción</h4>
-                      <p className="text-xs text-slate-600">
-                        La conexión se ha pausado debido a límites de tasa de Claude. Las secciones completadas se encuentran preservadas. Puede reintentar reanudar para terminar la redacción.
+                      <h4 className="text-xs font-bold text-slate-950 uppercase tracking-wide">Error en Redacción / Conexión Pausada</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Se ha pausado la redacción debido a límites de tasa de Claude o a un problema temporal de conexión. Las secciones generadas hasta el momento han sido preservadas intactas en la hoja estratégica. Puede reintentar la reanudación para terminar el análisis.
                       </p>
                       <p className="text-[10px] font-mono text-red-700 bg-red-100/50 p-2 rounded border border-red-200/60 overflow-x-auto mt-2">
                         {errorMessage}
@@ -872,10 +882,10 @@ export default function App() {
                   <div className="flex justify-end pt-1">
                     <button
                       onClick={resumeGeneration}
-                      className="flex items-center gap-1.5 py-2 px-4 bg-red-600 text-white font-semibold text-xs rounded-xl hover:bg-red-700 transition cursor-pointer shadow-md"
+                      className="flex items-center gap-1.5 py-2 px-4 bg-slate-800 text-white font-semibold text-xs rounded-xl hover:bg-slate-900 transition cursor-pointer shadow-md"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      Reanudar Generación
+                      Reanudar Redacción con Claude
                     </button>
                   </div>
                 </div>
