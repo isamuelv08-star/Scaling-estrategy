@@ -12,6 +12,8 @@ import {
   Copy,
   PlusCircle,
   Search,
+  User,
+  LogOut,
   Briefcase,
   DollarSign,
   Globe,
@@ -44,6 +46,7 @@ import { parseMarkdownToReact } from "./utils/parser.tsx";
 import { stripMarkdown, generatePremiumHTMLReport } from "./utils/cleanText";
 import { WelcomeScreen } from "./components/WelcomeScreen.tsx";
 import { createClient } from "@supabase/supabase-js";
+import { AuthModal } from "./components/AuthModal.tsx";
 import { OnboardingWizard } from "./components/OnboardingWizard.tsx";
 import { LiveGenerationTracker } from "./components/LiveGenerationTracker.tsx";
 import { WorkspaceControls } from "./components/WorkspaceControls.tsx";
@@ -271,6 +274,10 @@ export default function App() {
   const [accentColor, setAccentColor] = useState<string>("blue");
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
   
+  // User Auth States
+  const [user, setUser] = useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  
   // Dynamic loading message index
   const [loadingMessageIndex, setLoadingMessageIndex] = useState<number>(0);
 
@@ -309,6 +316,72 @@ export default function App() {
     localStorage.setItem("scaling_supabase_anon_key", key);
     setSupabaseUrlState(url);
     setSupabaseAnonKeyState(key);
+  };
+
+  // Auth session subscriber and profile sync
+  useEffect(() => {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    // Get initial session
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadUserProfile(session.user.id);
+      }
+    });
+
+    // Listen to changes
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setConsultorNombre("SCALING STRATEGY");
+        setAccentColor("blue");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabaseUrl, supabaseAnonKey]);
+
+  const loadUserProfile = async (userId: string) => {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      const { data, error } = await client
+        .from("perfiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(); // Use maybeSingle to prevent exceptions if first-time user
+      if (data) {
+        if (data.consultor_nombre) setConsultorNombre(data.consultor_nombre);
+        if (data.accent_color) setAccentColor(data.accent_color);
+      }
+    } catch (err) {
+      console.warn("No se pudo cargar el perfil del usuario:", err);
+    }
+  };
+
+  const saveUserProfile = async (nombre: string, color: string) => {
+    const client = getSupabaseClient();
+    if (!client || !user) return;
+    try {
+      const { error } = await client.from("perfiles").upsert({
+        user_id: user.id,
+        consultor_nombre: nombre,
+        accent_color: color,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      triggerToast("Configuración de marca guardada en su cuenta", "success");
+    } catch (err: any) {
+      console.error("Error saving profile:", err);
+      triggerToast("No se pudo guardar la configuración: " + err.message, "error");
+    }
   };
 
   // Helper to initialize and retrieve Supabase Client
@@ -446,7 +519,7 @@ export default function App() {
   // Load history list on startup
   useEffect(() => {
     fetchHistory();
-  }, [supabaseUrl, supabaseAnonKey]);
+  }, [supabaseUrl, supabaseAnonKey, user]);
 
   // Auto scroll to active generating section
   useEffect(() => {
@@ -481,9 +554,23 @@ export default function App() {
   const fetchHistory = async () => {
     if (!supabaseUrl || !supabaseAnonKey) return;
     try {
-      const data = await invokeEdgeFunction({ action: "list" });
-      if (data && data.estrategias) {
-        setHistoryList(data.estrategias);
+      const client = getSupabaseClient();
+      if (user && client) {
+        // Direct secure fetch for authenticated user (respects RLS)
+        const { data, error } = await client
+          .from("estrategias")
+          .select("id, nombre_negocio, rubro, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setHistoryList(data || []);
+      } else {
+        // Fallback to anonymous list
+        const data = await invokeEdgeFunction({ action: "list" });
+        if (data && data.estrategias) {
+          setHistoryList(data.estrategias);
+        }
       }
     } catch (err) {
       console.error("Error loading history:", err);
@@ -700,11 +787,62 @@ export default function App() {
       setResumen(summaryText);
       setGenerationStatus("finished");
       triggerToast("¡Estrategia de Escalado generada con éxito!", "success");
+      
+      // Auto-save strategy in the background
+      setTimeout(() => {
+        saveStrategyToDBDirect(formData, currentSectionsState, summaryText);
+      }, 100);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err?.message || "Ocurrió un error inesperado.");
       setGenerationStatus("error");
       triggerToast("Fallo en la generación de la estrategia.", "error");
+    }
+  };
+
+  // Helper to save automatically right after generation finishes or is updated
+  const saveStrategyToDBDirect = async (currentFormData: any, currentSections: any, currentResumen: string) => {
+    const client = getSupabaseClient();
+    try {
+      if (user && client) {
+        const { data, error } = await client
+          .from("estrategias")
+          .insert({
+            nombre_negocio: currentFormData.nombreNegocio,
+            rubro: currentFormData.rubro,
+            form_data: currentFormData,
+            secciones: currentSections,
+            resumen: currentResumen,
+            user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data && data.id) {
+          setSaveSuccess(true);
+          triggerToast("Estrategia guardada automáticamente en su cuenta", "success");
+          fetchHistory();
+          setSelectedHistoryId(data.id);
+        }
+      } else {
+        const data = await invokeEdgeFunction({
+          action: "save",
+          nombreNegocio: currentFormData.nombreNegocio,
+          rubro: currentFormData.rubro,
+          formData: currentFormData,
+          secciones: currentSections,
+          resumen: currentResumen
+        });
+        if (data && data.id) {
+          setSaveSuccess(true);
+          triggerToast("Estrategia guardada automáticamente en el historial", "success");
+          fetchHistory();
+          setSelectedHistoryId(data.id);
+        }
+      }
+    } catch (err: any) {
+      console.error("Auto-save error:", err);
     }
   };
 
@@ -722,22 +860,46 @@ export default function App() {
 
     setIsSaving(true);
     try {
-      const data = await invokeEdgeFunction({
-        action: "save",
-        nombreNegocio: formData.nombreNegocio,
-        rubro: formData.rubro,
-        formData: formData,
-        secciones: sections,
-        resumen: resumen
-      });
+      const client = getSupabaseClient();
+      if (user && client) {
+        const { data, error } = await client
+          .from("estrategias")
+          .insert({
+            nombre_negocio: formData.nombreNegocio,
+            rubro: formData.rubro,
+            form_data: formData,
+            secciones: sections,
+            resumen: resumen,
+            user_id: user.id
+          })
+          .select()
+          .single();
 
-      if (data && data.id) {
-        setSaveSuccess(true);
-        triggerToast("Estrategia guardada en el historial corporativo", "success");
-        fetchHistory(); // refresh history list
-        setSelectedHistoryId(data.id);
+        if (error) throw error;
+        if (data && data.id) {
+          setSaveSuccess(true);
+          triggerToast("Estrategia guardada con éxito en su cuenta", "success");
+          fetchHistory(); // refresh history list
+          setSelectedHistoryId(data.id);
+        }
       } else {
-        throw new Error("Error al guardar la estrategia");
+        const data = await invokeEdgeFunction({
+          action: "save",
+          nombreNegocio: formData.nombreNegocio,
+          rubro: formData.rubro,
+          formData: formData,
+          secciones: sections,
+          resumen: resumen
+        });
+
+        if (data && data.id) {
+          setSaveSuccess(true);
+          triggerToast("Estrategia guardada en el historial corporativo", "success");
+          fetchHistory(); // refresh history list
+          setSelectedHistoryId(data.id);
+        } else {
+          throw new Error("Error al guardar la estrategia");
+        }
       }
     } catch (err: any) {
       triggerToast(err?.message || "No se pudo guardar la estrategia.", "error");
@@ -757,56 +919,72 @@ export default function App() {
     setIsHistoryOpen(false); // Close history sidebar drawer
 
     try {
-      const data = await invokeEdgeFunction({ action: "get", id });
-      if (data && data.estrategia) {
-        const est = data.estrategia;
-        // set form data
-        if (est.form_data) {
-          setFormData(est.form_data);
-          setWizardStep(4);
-        } else {
-          setFormData({
-            nombreNegocio: est.nombre_negocio,
-            rubro: est.rubro || "",
-            tipoModelo: "Servicios B2B",
-            descripcion: "",
-            productoEstrella: "",
-            ubicacion: "",
-            publicoObjetivo: "",
-            sitioWeb: "",
-            facturacion: "",
-            ticketPromedio: "",
-            margenUtilidad: "",
-            presupuesto: "",
-            canalesActuales: "",
-            metaPrincipal: "",
-            plazoMeta: "6 meses",
-            competidores: "",
-            obstaculo: "",
-            tamanoEquipo: "Solo yo (Autoempleado)",
-            herramientasActuales: ""
-          });
-          setWizardStep(1);
+      const client = getSupabaseClient();
+      if (user && client) {
+        const { data, error } = await client
+          .from("estrategias")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setStrategyStates(data);
         }
-        const rawSecciones = est.secciones;
-        const safeSections: Record<string, string> = {};
-        if (rawSecciones && typeof rawSecciones === "object" && !Array.isArray(rawSecciones)) {
-          Object.entries(rawSecciones).forEach(([k, v]) => {
-            if (typeof v === "string") safeSections[k] = v;
-          });
-        }
-        setSections(safeSections);
-        setResumen(est.resumen || "");
-        setGenerationStatus("finished"); // Mark as finished so edit controls render
-        setIsWorkspaceActive(true);
-        setIsFormOpen(false);
-        triggerToast(`Cargada estrategia de ${est.nombre_negocio}`, "info");
       } else {
-        throw new Error(data?.error || "Error cargando ítem del historial");
+        const data = await invokeEdgeFunction({ action: "get", id });
+        if (data && data.estrategia) {
+          setStrategyStates(data.estrategia);
+        } else {
+          throw new Error(data?.error || "Error cargando ítem del historial");
+        }
       }
     } catch (err: any) {
       triggerToast(err?.message || "No se pudo cargar la estrategia.", "error");
     }
+  };
+
+  const setStrategyStates = (est: any) => {
+    if (est.form_data) {
+      setFormData(est.form_data);
+      setWizardStep(4);
+    } else {
+      setFormData({
+        nombreNegocio: est.nombre_negocio,
+        rubro: est.rubro || "",
+        tipoModelo: "Servicios B2B",
+        descripcion: "",
+        productoEstrella: "",
+        ubicacion: "",
+        publicoObjetivo: "",
+        sitioWeb: "",
+        facturacion: "",
+        ticketPromedio: "",
+        margenUtilidad: "",
+        presupuesto: "",
+        canalesActuales: "",
+        metaPrincipal: "",
+        plazoMeta: "6 meses",
+        competidores: "",
+        obstaculo: "",
+        tamanoEquipo: "Solo yo (Autoempleado)",
+        herramientasActuales: ""
+      });
+      setWizardStep(1);
+    }
+    const rawSecciones = est.secciones;
+    const safeSections: Record<string, string> = {};
+    if (rawSecciones && typeof rawSecciones === "object" && !Array.isArray(rawSecciones)) {
+      Object.entries(rawSecciones).forEach(([k, v]) => {
+        if (typeof v === "string") safeSections[k] = v;
+      });
+    }
+    setSections(safeSections);
+    setResumen(est.resumen || "");
+    setGenerationStatus("finished"); // Mark as finished so edit controls render
+    setIsWorkspaceActive(true);
+    setIsFormOpen(false);
+    triggerToast(`Cargada estrategia de ${est.nombre_negocio}`, "info");
   };
 
   // Clipboard copies strategy markdown
@@ -1010,6 +1188,10 @@ export default function App() {
             fetchHistory();
           }}
           historyCount={historyList.length}
+          user={user}
+          onLoginClick={() => setIsAuthModalOpen(true)}
+          supabaseClient={getSupabaseClient()}
+          triggerToast={triggerToast}
         />
       ) : (
         <div className="animate-fade-in">
@@ -1055,6 +1237,47 @@ export default function App() {
                 <History className="w-3.5 h-3.5 text-slate-400" />
                 <span>Historial ({historyList.length})</span>
               </button>
+
+              {user ? (
+                <>
+                  <button
+                    onClick={() => setIsBrandingOpen(true)}
+                    className="flex items-center gap-1.5 border border-amber-200 bg-amber-50/50 hover:bg-amber-50 text-amber-800 text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer"
+                    title="Configurar Nombre y Diseño de Marca"
+                  >
+                    <Palette className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="hidden sm:inline">Marca</span>
+                  </button>
+
+                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl p-1">
+                    <span className="text-[10px] font-bold text-slate-700 px-2 max-w-[120px] truncate hidden md:inline-block">
+                      {user.user_metadata?.display_name || user.email?.split("@")[0]}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        const client = getSupabaseClient();
+                        if (client) {
+                          await client.auth.signOut();
+                          setUser(null);
+                          triggerToast("Sesión cerrada correctamente", "info");
+                        }
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-white transition cursor-pointer"
+                      title="Cerrar sesión"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 text-xs font-bold py-2 px-3 rounded-xl border border-indigo-100 transition cursor-pointer animate-pulse"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Acceso Multi-usuario</span>
+                </button>
+              )}
             </div>
           </header>
 
@@ -1239,6 +1462,17 @@ export default function App() {
                               ))}
                             </div>
                           </div>
+                          
+                          {user && (
+                            <div className="md:col-span-2 flex justify-end pt-1">
+                              <button
+                                onClick={() => saveUserProfile(consultorNombre, accentColor)}
+                                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition cursor-pointer"
+                              >
+                                Guardar Configuración en Cuenta
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1751,6 +1985,18 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal Component */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        supabaseClient={getSupabaseClient()}
+        onAuthSuccess={(u) => {
+          setUser(u);
+          fetchHistory();
+        }}
+        triggerToast={triggerToast}
+      />
     </div>
   );
 }

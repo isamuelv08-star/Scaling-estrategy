@@ -1,18 +1,77 @@
-import React from "react";
-import { Sparkles, ArrowRight, Coins, Search, Target, Award } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { 
+  Sparkles, 
+  ArrowRight, 
+  Coins, 
+  Search, 
+  Target, 
+  Award, 
+  Mail, 
+  Lock, 
+  Loader2, 
+  User, 
+  KeyRound, 
+  CheckCircle, 
+  History, 
+  LogOut
+} from "lucide-react";
 import { FormData } from "../utils/prompts";
 
 interface WelcomeScreenProps {
   onStart: (initialData: FormData) => void;
   onOpenHistory: () => void;
   historyCount: number;
+  user: any;
+  onLoginClick: () => void;
+  supabaseClient?: any;
+  triggerToast?: (msg: string, type: "success" | "error" | "info") => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onStart,
   onOpenHistory,
   historyCount,
+  user,
+  onLoginClick,
+  supabaseClient,
+  triggerToast,
 }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+
+  const features = [
+    {
+      icon: <Coins className="w-5 h-5 text-blue-400" />,
+      title: "Unit Economics Perfectos",
+      desc: "Cálculo matemático de CAC, LTV y márgenes óptimos adaptados automáticamente a su ticket de venta para asegurar la máxima rentabilidad de sus campañas.",
+    },
+    {
+      icon: <Search className="w-5 h-5 text-indigo-400" />,
+      title: "Auditoría Competitiva Activa",
+      desc: "Análisis inteligente de competidores directos en su región geográfica para capturar vacíos de mercado e identificar ventajas competitivas inmediatas.",
+    },
+    {
+      icon: <Target className="w-5 h-5 text-sky-400" />,
+      title: "Funnels de Alta Conversión",
+      desc: "Ingeniería de ofertas irresistibles personalizadas y distribución óptima de presupuesto publicitario guiada por modelos predictivos.",
+    },
+    {
+      icon: <Award className="w-5 h-5 text-purple-400" />,
+      title: "Planificación CRM & Nutrición",
+      desc: "Nutrición automática de prospectos, secuencias de seguimiento estructuradas y control integral de embudos comerciales de alta gama.",
+    },
+  ];
+
+  // Auto-play feature sliding animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeatureIndex((prev) => (prev + 1) % features.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [features.length]);
+
   const handleGenerate = () => {
     onStart({
       nombreNegocio: "",
@@ -37,83 +96,270 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     });
   };
 
+  const handleInlineLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabaseClient) {
+      triggerToast?.("El cliente de base de datos no está disponible actualmente.", "error");
+      return;
+    }
+    if (!email.trim() || !password.trim()) {
+      triggerToast?.("Por favor rellene todos los campos.", "error");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (error) throw error;
+
+      if (data?.user) {
+        triggerToast?.(
+          `¡Acceso exitoso! Bienvenido ${data.user.user_metadata?.display_name || email}`,
+          "success"
+        );
+      }
+    } catch (err: any) {
+      console.error("Inline login error:", err);
+      triggerToast?.(err.message || "Credenciales incorrectas o error de conexión.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+      triggerToast?.("Sesión cerrada correctamente", "info");
+    }
+  };
+
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center items-center py-10 px-4 relative overflow-hidden">
-      {/* Premium center ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-blue-100/30 via-indigo-50/10 to-transparent rounded-full blur-[130px] pointer-events-none" />
+    <div className="min-h-[85vh] flex items-center justify-center p-0 md:p-6 lg:p-8 relative overflow-hidden bg-slate-50/50">
+      {/* Decorative background light bubbles behind everything */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-blue-100/20 via-indigo-50/10 to-transparent rounded-full blur-[140px] pointer-events-none" />
+      
+      {/* Clean integrated main container */}
+      <div className="w-full max-w-6xl bg-white border border-slate-100 rounded-none md:rounded-[32px] shadow-2xl shadow-slate-150/50 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[80vh] items-stretch relative z-10">
+        
+        {/* LEFT COLUMN: FIXED BRAND SPLIT PANEL (Solid top-to-bottom, no margins, integrated left layout) */}
+        <div className="lg:col-span-7 bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 text-white p-8 md:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+          
+          {/* Subtle grid background mask for modern aesthetic */}
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-60" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -ml-24 -mb-24" />
 
-      <div className="max-w-3xl w-full text-center space-y-10 relative z-10">
-        {/* elegant system badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100/70 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-          <span className="text-[9px] font-mono tracking-[0.18em] text-blue-700 font-bold uppercase">
-            SCALING STRATEGY • SISTEMA DE ACELERACIÓN IA
-          </span>
-        </div>
-
-        {/* Headlines */}
-        <div className="space-y-4">
-          <h1 className="font-display text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none bg-gradient-to-r from-slate-950 via-blue-900 to-slate-950 bg-clip-text text-transparent">
-            Acelere el Crecimiento de su Negocio
-          </h1>
-          <p className="text-sm md:text-base text-slate-500 leading-relaxed max-w-xl mx-auto font-medium">
-            Alinee sus unit economics, audite su competencia local y cree embudos comerciales automáticos de alta conversión en minutos.
-          </p>
-        </div>
-
-        {/* Call to action buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button
-            onClick={handleGenerate}
-            className="group relative inline-flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 text-white font-display text-xs font-bold px-8 py-4.5 rounded-2xl shadow-lg shadow-blue-600/15 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
-          >
-            Generar una Estrategia
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
-        </div>
-
-        {/* Value Proposition Bento Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-6 text-left">
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 space-y-1.5 transition-all duration-200 hover:border-slate-200 hover:shadow-md">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-1">
-              <Coins className="w-4.5 h-4.5" />
+          {/* Top content */}
+          <div className="space-y-6 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+              <Sparkles className="w-3.5 h-3.5 text-blue-300 animate-pulse" />
+              <span className="text-[9px] font-mono tracking-[0.18em] text-blue-200 font-bold uppercase">
+                {user ? `CONSULTOR EN LÍNEA` : "SISTEMA DE ACELERACIÓN IA"}
+              </span>
             </div>
-            <h4 className="text-[11px] font-bold text-slate-950 uppercase tracking-wider">Unit Economics Perfectos</h4>
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-              Cálculo preciso de CAC, LTV y márgenes adaptado a su ticket de venta para asegurar proyecciones de rentabilidad viables.
-            </p>
+
+            <div className="space-y-4">
+              <h1 className="font-display text-3xl md:text-5xl font-black tracking-tight leading-[1.05] text-white">
+                Acelere el Crecimiento de su Negocio
+              </h1>
+              <p className="text-xs md:text-sm text-indigo-200/90 leading-relaxed font-light max-w-xl">
+                Alinee sus unit economics, audite su competencia local y cree embudos comerciales automáticos de alta conversión en minutos con precisión algorítmica premium.
+              </p>
+            </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 space-y-1.5 transition-all duration-200 hover:border-slate-200 hover:shadow-md">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-1">
-              <Search className="w-4.5 h-4.5" />
+          {/* Dynamic sliding container at the bottom */}
+          <div className="mt-12 pt-8 border-t border-white/10 relative z-10">
+            <span className="text-[9px] font-mono tracking-widest text-blue-300 font-bold uppercase block mb-3.5">
+              Módulos de Precisión
+            </span>
+            
+            <div className="relative min-h-[140px] bg-white/[0.03] backdrop-blur-sm rounded-2xl p-6 border border-white/5 flex flex-col justify-between">
+              
+              {/* Feature Slide Loop */}
+              <div className="relative w-full h-[85px] overflow-hidden">
+                {features.map((feat, idx) => (
+                  <div
+                    key={idx}
+                    className={`transition-all duration-500 absolute inset-0 flex gap-4 ${
+                      idx === activeFeatureIndex 
+                        ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" 
+                        : "opacity-0 -translate-y-4 scale-95 pointer-events-none"
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/5">
+                      {feat.icon}
+                    </div>
+                    <div className="space-y-1 pr-2">
+                      <h4 className="text-xs font-bold text-white tracking-wide uppercase">
+                        {feat.title}
+                      </h4>
+                      <p className="text-[11px] md:text-xs text-indigo-150/80 leading-normal font-light">
+                        {feat.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Slider Dots */}
+              <div className="flex items-center gap-1.5 mt-2 self-end">
+                {features.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveFeatureIndex(idx)}
+                    className={`h-1 rounded-full transition-all duration-350 cursor-pointer ${
+                      idx === activeFeatureIndex ? "w-5 bg-blue-400" : "w-1.5 bg-white/20 hover:bg-white/40"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-            <h4 className="text-[11px] font-bold text-slate-950 uppercase tracking-wider">Auditoría Competitiva Activa</h4>
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-              Rastreo web en tiempo real de competidores en su región para contrastar posicionamiento y capturar vacíos de mercado.
-            </p>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 space-y-1.5 transition-all duration-200 hover:border-slate-200 hover:shadow-md">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-1">
-              <Target className="w-4.5 h-4.5" />
-            </div>
-            <h4 className="text-[11px] font-bold text-slate-950 uppercase tracking-wider">Embudo Comercial Táctico</h4>
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-              Campañas estructuradas de captación de prospectos, ofertas irresistibles y distribución de presupuesto.
-            </p>
-          </div>
+        </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 space-y-1.5 transition-all duration-200 hover:border-slate-200 hover:shadow-md">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-1">
-              <Award className="w-4.5 h-4.5" />
-            </div>
-            <h4 className="text-[11px] font-bold text-slate-950 uppercase tracking-wider">Planificación CRM y Cierre</h4>
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-              Automatizaciones de velocidad de respuesta, nutrición de contactos y mitigación de cuellos de botella operativos.
-            </p>
+        {/* RIGHT COLUMN: PREMIUM FLOAT ACCES PANEL (Centered with rich shadows) */}
+        <div className="lg:col-span-5 bg-slate-50/50 flex flex-col items-center justify-center p-6 md:p-8 relative">
+          
+          {/* Subtle light visual anchor */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-slate-100/50 to-white/40 pointer-events-none" />
+
+          {/* Floating Premium Card */}
+          <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-8 relative z-10">
+            
+            {!user ? (
+              // PREMIUM CLEAN LOGIN FORM
+              <form onSubmit={handleInlineLogin} className="space-y-6">
+                <div className="space-y-2 text-center">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-1">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-display text-xl font-black text-slate-900 tracking-tight">
+                    Bienvenido
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-light leading-relaxed max-w-[240px] mx-auto">
+                    Inicie sesión de manera directa para guardar planes de escalado, configuraciones y marcas.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Correo Electrónico
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="socio@suagencia.com"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Contraseña
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 cursor-pointer disabled:opacity-75"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Verificando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+                      <span>Ingresar con Acceso Seguro</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="pt-4 border-t border-slate-100 text-center text-[11px] text-slate-500">
+                  ¿Aún no tiene cuenta?{" "}
+                  <button
+                    type="button"
+                    onClick={onLoginClick}
+                    className="text-blue-600 hover:underline font-bold cursor-pointer"
+                  >
+                    Regístrese gratis aquí
+                  </button>
+                </div>
+              </form>
+            ) : (
+              // LOGGED IN ACTION OPTIONS
+              <div className="space-y-6">
+                <div className="space-y-2 text-center">
+                  <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-1">
+                    <CheckCircle className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <span className="text-[9px] font-mono tracking-[0.2em] text-emerald-600 font-bold uppercase block">
+                    CONSOLA INTEGRADA
+                  </span>
+                  <h3 className="font-display text-lg font-black text-slate-900 tracking-tight truncate max-w-[250px] mx-auto">
+                    {user.user_metadata?.display_name || user.email?.split("@")[0]}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 truncate max-w-[250px] mx-auto font-light">{user.email}</p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <button
+                    onClick={handleGenerate}
+                    className="w-full group bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 px-4 text-xs font-bold transition-all duration-200 flex items-center justify-between shadow-md shadow-blue-600/10 cursor-pointer hover:-translate-y-0.5"
+                  >
+                    <span>Comenzar Nueva Estrategia</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+
+                  <button
+                    onClick={onOpenHistory}
+                    className="w-full border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Historial Guardado ({historyCount})</span>
+                    <History className="w-4 h-4 text-slate-400" />
+                  </button>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
+                  <span className="text-slate-400 text-[10px] font-mono">Panel seguro</span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-red-500 hover:text-red-600 font-bold flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Salir</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
       </div>
     </div>
   );
