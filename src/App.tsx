@@ -47,6 +47,8 @@ import { WorkspaceControls } from "./components/WorkspaceControls.tsx";
 import { ROICalculator } from "./components/ROICalculator.tsx";
 import { HookGenerator } from "./components/HookGenerator.tsx";
 import { StrategySelector } from "./components/StrategySelector.tsx";
+import { TaskBoard } from "./components/TaskBoard.tsx";
+import { ListTodo } from "lucide-react";
 
 const LOADING_STATUSES = [
   "Iniciando auditoría de modelo de negocio y viabilidad de unit economics...",
@@ -184,7 +186,7 @@ export default function App() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(-1);
   const [generationStatus, setGenerationStatus] = useState<"idle" | "selecting" | "generating" | "paused" | "error" | "finished">("idle");
   const [selectedStrategyType, setSelectedStrategyType] = useState<string>("completa");
-  const [activeTab, setActiveTab] = useState<"strategy" | "roi" | "hooks">("strategy");
+  const [activeTab, setActiveTab] = useState<"strategy" | "roi" | "hooks" | "tasks">("strategy");
   const [errorMessage, setErrorMessage] = useState<string>("");
   
   // Dynamic loading message index
@@ -1003,6 +1005,17 @@ export default function App() {
                     <Sparkles className="w-4 h-4 text-yellow-500" />
                     <span>Ganchos de Venta</span>
                   </button>
+                  <button
+                    onClick={() => setActiveTab("tasks")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      activeTab === "tasks"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <ListTodo className="w-4 h-4 text-purple-600" />
+                    <span>Plan de Acción</span>
+                  </button>
                 </div>
               )}
 
@@ -1152,8 +1165,10 @@ export default function App() {
                 </article>
               ) : activeTab === "roi" ? (
                 <ROICalculator formData={formData} />
-              ) : (
+              ) : activeTab === "hooks" ? (
                 <HookGenerator formData={formData} />
+              ) : (
+                <TaskBoard formData={formData} strategyType={selectedStrategyType} />
               )}
 
               {/* Error recovery block */}
