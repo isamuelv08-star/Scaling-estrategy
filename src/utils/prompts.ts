@@ -20,6 +20,9 @@ export interface FormData {
   obstaculo: string;
   tamanoEquipo: string; // Team size and capacity
   herramientasActuales: string; // CRM, Email marketing tools, etc.
+  invertidoEnAds?: string; // "Sí" | "No"
+  montoInvertidoEnAds?: string;
+  plataformasAds?: string;
 }
 
 export const SECTIONS_CONFIG = [
@@ -47,6 +50,8 @@ ${data.sitioWeb ? `- Presencia Digital Base: ${data.sitioWeb}` : ""}
 - Canales de Marketing y Venta Actuales: ${data.canalesActuales}
 - Capacidad de Operación / Equipo: ${data.tamanoEquipo}
 - Herramientas Tecnológicas / CRM Actuales: ${data.herramientasActuales}
+- ¿Inversión previa en publicidad paga (Ads)?: ${data.invertidoEnAds || "No declarado"}
+${data.invertidoEnAds === "Sí" ? `- Presupuesto invertido anteriormente en Ads: ${data.montoInvertidoEnAds || "No especificado"}\n- Plataformas de Ads utilizadas: ${data.plataformasAds || "No especificado"}` : ""}
 
 **Objetivos y Desafíos:**
 - Meta Principal a alcanzar: ${data.metaPrincipal}
@@ -194,6 +199,9 @@ Eres el Growth Hacker y Media Buyer Principal de Scaling Strategy. Tu misión es
 
 **Modelo de Negocio:** ${data.tipoModelo}
 **Producto Estrella a Promover:** ${data.productoEstrella}
+**Historial de Inversión en Publicidad (Ads):**
+- ¿Ha invertido en Ads antes?: ${data.invertidoEnAds || "No declarado"}
+${data.invertidoEnAds === "Sí" ? `- Presupuesto mensual de Ads anterior: ${data.montoInvertidoEnAds || "No especificado"}\n- Plataformas de Ads previas: ${data.plataformasAds || "No especificado"}` : ""}
 
 **Historial de la Estrategia:**
 ${previousContent}
@@ -322,3 +330,263 @@ Debe capturar la esencia del diagnóstico estratégico, la gran palanca de creci
 - Usa markdown para destacar conceptos en **negrita**.
 - Escríbelo con un tono de consultoría premium de Scaling Strategy.
 `;
+
+export interface StrategySection {
+  id: string;
+  name: string;
+  prompt: (data: FormData, previousContent: string) => string;
+}
+
+export const getSectionsForStrategy = (strategyId: string, data: FormData): StrategySection[] => {
+  switch (strategyId) {
+    case "contenido":
+      return [
+        {
+          id: "diagnostico_org",
+          name: "1. Diagnóstico Inbound y Pilares de Mensaje",
+          prompt: (data: FormData): string => `
+Eres el Director de Estrategia de Contenidos de Scaling Strategy.
+Analiza el posicionamiento orgánico actual de **${data.nombreNegocio}** en el rubro de **${data.rubro}**.
+Describe 3 pilares de comunicación estratégicos dirigidos a **${data.publicoObjetivo}** para potenciar el producto estrella **${data.productoEstrella}**.
+Estructura tu respuesta con títulos markdown:
+## 1. Diagnóstico Inbound y Pilares de Mensaje
+### 1.1. Análisis de Visibilidad Orgánica Actual
+### 1.2. Tres Pilares de Contenido Estratégicos
+### 1.3. Conexión de Mensaje con el Dolor del Cliente ideal (${data.publicoObjetivo})
+`
+        },
+        {
+          id: "matriz_org",
+          name: "2. Matriz de Distribución de Contenido (TOFU, MOFU, BOFU)",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Director Creativo de Scaling Strategy.
+Diseña la matriz de distribución con la proporción estratégica: 60% TOFU (Atracción Masiva), 25% MOFU (Nutrición y Autoridad) y 15% BOFU (Conversión sobre ${data.productoEstrella}).
+Basado en el diagnóstico previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 2. Matriz de Distribución de Contenido
+### 2.1. Estrategia de Embudo Orgánico (60/25/15)
+### 2.2. Flujo de Nutrición Inbound
+### 2.3. Acciones de Conversión Orgánica
+`
+        },
+        {
+          id: "calendario_org",
+          name: "3. Parrilla de 6 Piezas de Contenido Críticas (Primeras 2 Semanas)",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Copywriter Principal de Scaling Strategy.
+Crea exactamente 6 piezas reales de contenido detallando canal, formato (Video/Carrusel/Post), gancho (Hook) persuasivo de 3 segundos, desarrollo y CTA fuerte para vender ${data.productoEstrella}.
+Basado en el diagnóstico previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 3. Parrilla de Contenido Práctica
+### 3.1. 6 Piezas de Alto Rendimiento para ${data.nombreNegocio}
+(Detalla cada una de las 6 piezas utilizando un formato de lista ordenado con sub-puntos indentados: Canal, Formato, Gancho, Estructura y CTA).
+`
+        }
+      ];
+
+    case "pago":
+      return [
+        {
+          id: "diagnostico_pago",
+          name: "1. Diagnóstico de Presupuesto y Canales de Pauta",
+          prompt: (data: FormData): string => `
+Eres el Growth Hacker Principal de Scaling Strategy.
+Analiza cómo distribuir óptimamente el presupuesto mensual de **${data.presupuesto}** para **${data.nombreNegocio}** en el rubro **${data.rubro}**.
+Determina los canales clave (Meta Ads, Google Search, etc.) basándote en su público objetivo: **${data.publicoObjetivo}**.
+Historial de Inversión en Publicidad (Ads):
+- ¿Ha invertido en Ads antes?: ${data.invertidoEnAds || "No" }
+${data.invertidoEnAds === "Sí" ? `- Presupuesto mensual invertido anteriormente: ${data.montoInvertidoEnAds || "No especificado"}\n- Plataformas de Ads utilizadas anteriormente: ${data.plataformasAds || "No especificado"}` : ""}
+
+Estructura tu respuesta con títulos markdown:
+## 1. Diagnóstico de Presupuesto y Canales
+### 1.1. Análisis Financiero de Inversión de Pauta (${data.presupuesto})
+### 1.2. Selección Crítica de Canales de Adquisición
+### 1.3. Estimación de Costo por Lead (CPL) y CAC viable
+`
+        },
+        {
+          id: "estructura_campanas",
+          name: "2. Estructura de Campañas de Alto Impacto",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Media Buyer de Scaling Strategy.
+Diseña exactamente 2 campañas detalladas: una de Captación de Leads/Tráfico frío y otra de Conversión/Remarketing para promover el producto estrella **${data.productoEstrella}**.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 2. Estructura de Campañas de Alto Impacto
+### 2.1. Campaña de Captación de Leads (Tráfico Frío)
+### 2.2. Campaña de Remarketing y Cierre (Conversión)
+`
+        },
+        {
+          id: "matriz_creativos",
+          name: "3. Directrices Creativas y Reglas de Optimización",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Director de Optimización de Scaling Strategy.
+Desarrolla las directrices de los anuncios (copys, ganchos visuales) y establece 2 reglas operativas específicas para detener anuncios o reasignar presupuesto mensual si el costo supera los límites.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 3. Directrices Creativas y Reglas de Optimización
+### 3.1. Ángulo Creativo y Ganchos de Copywriting
+### 3.2. Reglas de Decisión Operativa (Optimización de Presupuesto)
+`
+        }
+      ];
+
+    case "escalabilidad":
+      return [
+        {
+          id: "auditoria_finance",
+          name: "1. Auditoría de Unit Economics y Escalabilidad",
+          prompt: (data: FormData): string => `
+Eres el Consultor Financiero de Scaling Strategy.
+Diagnostica críticamente la viabilidad de escalado de **${data.nombreNegocio}** basándote en la facturación de **${data.facturacion}**, ticket promedio de **${data.ticketPromedio}** y margen de utilidad estimado del **${data.margenUtilidad}**.
+Explica cómo mitigar su mayor obstáculo: **${data.obstaculo}**.
+Estructura tu respuesta con títulos markdown:
+## 1. Auditoría Financiera y Unit Economics
+### 1.1. Análisis Crítico de Rentabilidad y Escalado
+### 1.2. Mapeo del Ratio LTV / CAC Proyectado
+### 1.3. Erradicación del Cuello de Botella Financiero (${data.obstaculo})
+`
+        },
+        {
+          id: "metas_smart",
+          name: "2. Objetivos SMART y Metas de Crecimiento",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Socio Director de Scaling Strategy.
+Establece exactamente 3 objetivos numéricos SMART corporativos específicos orientados a lograr su meta principal: **${data.metaPrincipal}** en un plazo de **${data.plazoMeta}**.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 2. Objetivos SMART y Metas de Crecimiento
+### 2.1. Objetivos Financieros SMART Corporativos
+### 2.2. Métricas Clave de Negocio (KPMs)
+`
+        },
+        {
+          id: "plan_fases",
+          name: "3. Plan de Acción Operativo por Fases",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Director de Operaciones de Scaling Strategy.
+Crea un plan táctico adaptado a un tamaño de equipo de **${data.tamanoEquipo}** dividido en 3 fases de tiempo concretas para liberar capacidad y automatizar operaciones en **${data.plazoMeta}**.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 3. Plan de Acción Operativo por Fases
+### 3.1. Fase 1: Cimientos y Optimización de Capacidad (Mes 1)
+### 3.2. Fase 2: Automatización y Flujo Comercial Activo (Meses 2-3)
+### 3.3. Fase 3: Escalamiento Rentable y Monitoreo (Meses 4-6)
+`
+        }
+      ];
+
+    case "comercial":
+      return [
+        {
+          id: "diagnostico_comercial",
+          name: "1. Diagnóstico de Fricción Comercial y CRM",
+          prompt: (data: FormData): string => `
+Eres el Director de Operaciones Comerciales de Scaling Strategy.
+Analiza la fricción en el proceso de ventas actual de **${data.nombreNegocio}** considerando el tamaño de su equipo (**${data.tamanoEquipo}**), herramientas actuales (**${data.herramientasActuales}**) y su mayor obstáculo (**${data.obstaculo}**).
+Estructura tu respuesta con títulos markdown:
+## 1. Diagnóstico de Fricción Comercial
+### 1.1. Auditoría del Flujo Comercial y Fricciones
+### 1.2. Evaluación de las Herramientas Actuales (${data.herramientasActuales})
+`
+        },
+        {
+          id: "protocolo_ventas",
+          name: "2. Protocolo de Ventas CRM y Velocidad de Respuesta",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Consultor CRM de Scaling Strategy.
+Diseña el protocolo comercial ideal para **${data.nombreNegocio}**: tiempos máximos de respuesta de leads, automatizaciones del CRM, flujos de nutrición y secuencia óptima de seguimiento de presupuestos.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 2. Protocolo de Ventas y CRM
+### 2.1. Reglas de Velocidad de Respuesta Comercial (Speed-to-Lead)
+### 2.2. Secuencia Táctica de Seguimiento de Leads (Contacto 1 al 5)
+`
+        },
+        {
+          id: "guion_ventas",
+          name: "3. Guión Táctico y Manejo de Objeciones",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Líder de Ventas de Scaling Strategy.
+Redacta un script de contacto rápido y un protocolo para derribar las 3 objeciones principales que enfrentarán al vender el producto estrella: **${data.productoEstrella}**.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 3. Guión Táctico y Manejo de Objeciones
+### 3.1. Guión de Primer Contacto Telefónico / WhatsApp
+### 3.2. Manual de Respuestas para derribar Objeciones Comunes
+`
+        }
+      ];
+
+    case "copywriting":
+      return [
+        {
+          id: "diagnostico_copy",
+          name: "1. Diagnóstico Psicológico de Dolor y Deseo",
+          prompt: (data: FormData): string => `
+Eres el Copywriter Persuasivo Principal de Scaling Strategy.
+Mapea el dolor más profundo, temores latentes y deseos de compra del público objetivo (**${data.publicoObjetivo}**) de **${data.nombreNegocio}** para posicionar el producto estrella **${data.productoEstrella}**.
+Estructura tu respuesta con títulos markdown:
+## 1. Diagnóstico Psicológico de Dolor y Deseo
+### 1.1. El Dolor Primordial del Cliente Ideal (${data.publicoObjetivo})
+### 1.2. Ángulos de Atracción y Deseos Latentes
+`
+        },
+        {
+          id: "emails_pas",
+          name: "2. Secuencia de Emails de Conversión (Framework PAS)",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Copywriter de Respuesta Directa de Scaling Strategy.
+Redacta una secuencia de exactamente 3 emails automatizados utilizando el framework PAS (Problema, Agitación, Solución) diseñada para captar el interés sobre **${data.productoEstrella}**.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 2. Secuencia de Emails de Conversión PAS
+### 2.1. Email 1: El Espejo del Dolor (Problema)
+### 2.2. Email 2: La Consecuencia de la Inacción (Agitación)
+### 2.3. Email 3: El Puente hacia la Libertad (Solución - ${data.productoEstrella})
+`
+        },
+        {
+          id: "wireframe_landing",
+          name: "3. Estructura y Copys para Landing Page de Alta Conversión",
+          prompt: (data: FormData, previousContent: string): string => `
+Eres el Conversion Rate Optimizer (CRO) de Scaling Strategy.
+Diseña el wireframe de contenido para una Landing Page de alta conversión para **${data.nombreNegocio}**. Detalla títulos, subtítulos, beneficios, prueba social y el CTA idóneo.
+Contexto previo:
+${previousContent}
+
+Estructura tu respuesta con títulos markdown:
+## 3. Arquitectura de Landing Page
+### 3.1. Estructura de Secciones Paso a Paso (CRO-friendly)
+### 3.2. Copys Principales (Titular H1, Subtítulo H2 y Botón CTA)
+`
+        }
+      ];
+
+    default: // "completa"
+      return SECTIONS_CONFIG.map(sec => ({
+        id: sec.id,
+        name: sec.name,
+        prompt: (d: FormData, prev: string) => sec.prompt(d, prev)
+      }));
+  }
+};

@@ -33,15 +33,21 @@ import {
   Settings,
   Server,
   Cloud,
-  RefreshCw
+  RefreshCw,
+  Cpu,
+  Terminal
 } from "lucide-react";
-import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData } from "./utils/prompts.ts";
+import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
 import { WelcomeScreen } from "./components/WelcomeScreen.tsx";
 import { createClient } from "@supabase/supabase-js";
 import { OnboardingWizard } from "./components/OnboardingWizard.tsx";
 import { LiveGenerationTracker } from "./components/LiveGenerationTracker.tsx";
 import { WorkspaceControls } from "./components/WorkspaceControls.tsx";
+import { ROICalculator } from "./components/ROICalculator.tsx";
+import { HookGenerator } from "./components/HookGenerator.tsx";
+import { AnthropicPromptExporter } from "./components/AnthropicPromptExporter.tsx";
+import { StrategySelector } from "./components/StrategySelector.tsx";
 
 const LOADING_STATUSES = [
   "Iniciando auditoría de modelo de negocio y viabilidad de unit economics...",
@@ -80,7 +86,10 @@ export default function App() {
     competidores: "",
     obstaculo: "",
     tamanoEquipo: "Solo yo (Autoempleado)",
-    herramientasActuales: ""
+    herramientasActuales: "",
+    invertidoEnAds: "No",
+    montoInvertidoEnAds: "",
+    plataformasAds: ""
   });
 
   // Wizard Step State
@@ -99,7 +108,9 @@ export default function App() {
   const [sections, setSections] = useState<Record<string, string>>({});
   const [resumen, setResumen] = useState<string>("");
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(-1);
-  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating" | "paused" | "error" | "finished">("idle");
+  const [generationStatus, setGenerationStatus] = useState<"idle" | "selecting" | "generating" | "paused" | "error" | "finished">("idle");
+  const [selectedStrategyType, setSelectedStrategyType] = useState<string>("completa");
+  const [activeTab, setActiveTab] = useState<"strategy" | "roi" | "hooks" | "anthropic">("strategy");
   const [errorMessage, setErrorMessage] = useState<string>("");
   
   // Dynamic loading message index
@@ -400,7 +411,7 @@ export default function App() {
   };
 
   // Main generation loop
-  const generateStrategy = async (startIndex = 0) => {
+  const generateStrategy = async (startIndex = 0, strategyType = selectedStrategyType) => {
     if (!isFormValid()) {
       triggerToast("Por favor complete toda la información del onboarding para un análisis de alta precisión.", "error");
       return;
@@ -409,6 +420,7 @@ export default function App() {
     setIsWorkspaceActive(true);
     setIsFormOpen(false);
     setGenerationStatus("generating");
+    setActiveTab("strategy");
     setErrorMessage("");
     setRetryInfo(null);
     setSelectedHistoryId(null);
@@ -421,11 +433,12 @@ export default function App() {
     }
 
     let currentSectionsState = startIndex === 0 ? {} : { ...sections };
+    const activeSections = getSectionsForStrategy(strategyType, formData);
 
     try {
-      // 1. Generate the 7 sections sequentially
-      for (let i = startIndex; i < SECTIONS_CONFIG.length; i++) {
-        const currentSection = SECTIONS_CONFIG[i];
+      // 1. Generate the sections sequentially
+      for (let i = startIndex; i < activeSections.length; i++) {
+        const currentSection = activeSections[i];
         setCurrentSectionIndex(i);
 
         // OPTIMIZED TOKEN OVERHEAD: Only pass relevant preceding sections as context
@@ -439,7 +452,7 @@ export default function App() {
           sistema: ["plan", "campanas"]
         };
         const neededIds = contextMap[currentSection.id] || [];
-        const previousContextText = SECTIONS_CONFIG
+        const previousContextText = activeSections
           .filter(sec => neededIds.includes(sec.id))
           .map(sec => currentSectionsState[sec.id] || "")
           .filter(text => text !== "")
@@ -454,7 +467,7 @@ export default function App() {
           max_tokens: 1500 // Optimized from 3000 to 1500 to keep responses focused and avoid timeouts or connection pauses
         };
 
-        // Inject Anthropic native web search tool for Section 2 (Comparativa de Mercado)
+        // Inject Anthropic native web search tool for Section 2 (Comparativa de Mercado) only in "completa" strategy
         if (currentSection.id === "comparativa") {
           payload.tools = [{ type: "web_search_20250305", name: "web_search" }];
         }
@@ -490,14 +503,14 @@ export default function App() {
         setSections(currentSectionsState);
 
         // Pause briefly between requests to mitigate rate limits
-        if (i < SECTIONS_CONFIG.length - 1) {
+        if (i < activeSections.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
 
       // 2. Generate Executive Summary based on the entire generated content
-      setCurrentSectionIndex(SECTIONS_CONFIG.length); // loading summary state
-      const fullContentText = SECTIONS_CONFIG
+      setCurrentSectionIndex(activeSections.length); // loading summary state
+      const fullContentText = activeSections
         .map(sec => currentSectionsState[sec.id] || "")
         .join("\n\n");
 
@@ -539,7 +552,7 @@ export default function App() {
 
   // Resume generation from failed section index
   const resumeGeneration = () => {
-    generateStrategy(currentSectionIndex);
+    generateStrategy(currentSectionIndex, selectedStrategyType);
   };
 
   // Save full strategy to DB
@@ -578,6 +591,7 @@ export default function App() {
   // Load selected strategy from history
   const loadHistoryItem = async (id: string) => {
     setGenerationStatus("idle");
+    setActiveTab("strategy");
     setErrorMessage("");
     setRetryInfo(null);
     setSelectedHistoryId(id);
@@ -652,6 +666,28 @@ export default function App() {
     navigator.clipboard.writeText(fullText)
       .then(() => triggerToast("Estrategia copiada al portapapeles en formato Markdown", "success"))
       .catch(() => triggerToast("Fallo al copiar", "error"));
+  };
+
+  // Download strategy as .md file
+  const downloadStrategy = () => {
+    let fullText = `# ESTRATEGIA DE ESCALADO: ${formData.nombreNegocio.toUpperCase()}\n`;
+    fullText += `Modelo de Negocio: ${formData.tipoModelo} | Rubro: ${formData.rubro} | Plazo: ${formData.plazoMeta}\n\n`;
+    fullText += `## RESUMEN EJECUTIVO\n${resumen}\n\n`;
+
+    SECTIONS_CONFIG.forEach(sec => {
+      if (sections[sec.id]) {
+        fullText += `${sections[sec.id]}\n\n`;
+      }
+    });
+
+    const element = document.createElement("a");
+    const file = new Blob([fullText], { type: "text/markdown;charset=utf-8" });
+    element.href = URL.createObjectURL(file);
+    element.download = `Estrategia_${formData.nombreNegocio.replace(/\s+/g, "_")}.md`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    triggerToast("Estrategia descargada como archivo .md con éxito", "success");
   };
 
   // Handle printing
@@ -793,15 +829,30 @@ export default function App() {
                   onChange={handleInputChange}
                   wizardStep={wizardStep}
                   setWizardStep={setWizardStep}
-                  onGenerate={() => generateStrategy(0)}
+                  onGenerate={() => setGenerationStatus("selecting")}
                   isGenerating={false}
                   triggerToast={triggerToast}
+                />
+              )}
+
+              {generationStatus === "selecting" && (
+                <StrategySelector
+                  formData={formData}
+                  onSelectStrategy={(strategyId) => {
+                    setSelectedStrategyType(strategyId);
+                    generateStrategy(0, strategyId);
+                  }}
+                  onBackToOnboarding={() => {
+                    setGenerationStatus("idle");
+                    setWizardStep(4);
+                  }}
                 />
               )}
 
               {generationStatus === "generating" && (
                 <LiveGenerationTracker
                   formData={formData}
+                  selectedStrategyType={selectedStrategyType}
                   loadingMessageIndex={loadingMessageIndex}
                   loadingStatuses={LOADING_STATUSES}
                   currentSectionIndex={currentSectionIndex}
@@ -814,6 +865,7 @@ export default function App() {
                 <WorkspaceControls
                   formData={formData}
                   copyToClipboard={copyToClipboard}
+                  downloadStrategy={downloadStrategy}
                   handlePrint={handlePrint}
                   saveStrategyToDB={saveStrategyToDB}
                   isSaving={isSaving}
@@ -838,128 +890,181 @@ export default function App() {
                 </div>
               )}
 
-              {/* Document Sheet Layout */}
-              <article
-                id="printed-document-canvas"
-                className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
-              >
-                {/* Letterhead header block */}
-                <div className="border-b border-slate-200/80 pb-6 flex flex-wrap items-start justify-between gap-6 print:border-b print:border-zinc-300">
-                  <div className="space-y-2">
-                    <span className="text-[8px] font-mono tracking-[0.25em] text-blue-600 font-bold uppercase block">
-                      PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
-                    </span>
-                    <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-slate-900 print:text-black leading-tight">
-                      {formData.nombreNegocio || "Nueva Estrategia"}
-                    </h1>
-                    
-                    {/* Real-Time updating metadata chips */}
-                    <div className="flex flex-wrap items-center gap-y-1.5 gap-x-2.5 text-[10px] text-slate-500 pt-1 font-medium">
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Modelo: <b>{formData.tipoModelo}</b></span>
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Rubro: <b>{formData.rubro || "General"}</b></span>
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Horizonte: <b>{formData.plazoMeta}</b></span>
-                      {formData.ubicacion && (
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
-                          <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                          {formData.ubicacion}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="font-display text-xs font-bold tracking-widest text-slate-900 block print:text-black">SCALING STRATEGY</span>
-                    <span className="text-[8px] font-mono tracking-wider text-blue-600 block uppercase font-bold">GROWTH PLATFORM</span>
-                    <span className="text-[9px] text-slate-400 font-mono mt-2 block">
-                      {new Date().toLocaleDateString("es-ES", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric"
-                      })}
-                    </span>
-                  </div>
+              {/* Tab Selector when finished */}
+              {generationStatus === "finished" && (
+                <div className="flex flex-wrap md:flex-nowrap bg-slate-100 p-1 rounded-2xl gap-1 print:hidden shadow-sm border border-slate-200 animate-fade-in">
+                  <button
+                    onClick={() => setActiveTab("strategy")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      activeTab === "strategy"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>Plan Estratégico</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("roi")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      activeTab === "roi"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    <span>Simulador ROI & LTV</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("hooks")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      activeTab === "hooks"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4 text-yellow-500" />
+                    <span>Ganchos de Venta</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("anthropic")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      activeTab === "anthropic"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Cpu className="w-4 h-4 text-indigo-600" />
+                    <span>Prompt Anthropic</span>
+                  </button>
                 </div>
+              )}
 
-                {/* Content Section Sheet */}
-                <div className="space-y-8">
-                  {resumen ? (
-                    <div className="p-5 bg-blue-50/60 border-l-4 border-blue-600 rounded-r-2xl shadow-sm italic text-xs md:text-sm text-slate-900 leading-relaxed">
-                      "{resumen}"
-                    </div>
-                  ) : (
-                    generationStatus === "idle" && formData.nombreNegocio && (
-                      <div className="p-4 bg-slate-50 border border-slate-200/60 border-dashed rounded-2xl text-xs text-slate-600 italic">
-                        "Plan táctico estructurado para escalar el producto estrella <b>{formData.productoEstrella || "[Su Producto Estrella]"}</b> en <b>{formData.ubicacion || "[Ubicación de Operación]"}</b>, con una meta prioritaria a <b>{formData.plazoMeta}</b> de: <b>{formData.metaPrincipal || "[Meta Principal]"}</b>."
+              {/* Render either Strategy canvas sheet, ROI calculator, or Copywriting hooks */}
+              {(generationStatus !== "finished" || activeTab === "strategy") ? (
+                /* Document Sheet Layout */
+                <article
+                  id="printed-document-canvas"
+                  className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
+                >
+                  {/* Letterhead header block */}
+                  <div className="border-b border-slate-200/80 pb-6 flex flex-wrap items-start justify-between gap-6 print:border-b print:border-zinc-300">
+                    <div className="space-y-2">
+                      <span className="text-[8px] font-mono tracking-[0.25em] text-blue-600 font-bold uppercase block">
+                        PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
+                      </span>
+                      <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-slate-900 print:text-black leading-tight">
+                        {formData.nombreNegocio || "Nueva Estrategia"}
+                      </h1>
+                      
+                      {/* Real-Time updating metadata chips */}
+                      <div className="flex flex-wrap items-center gap-y-1.5 gap-x-2.5 text-[10px] text-slate-500 pt-1 font-medium">
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Modelo: <b>{formData.tipoModelo}</b></span>
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Rubro: <b>{formData.rubro || "General"}</b></span>
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Horizonte: <b>{formData.plazoMeta}</b></span>
+                        {formData.ubicacion && (
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
+                            <MapPin className="w-2.5 h-2.5 text-slate-400" />
+                            {formData.ubicacion}
+                          </span>
+                        )}
                       </div>
-                    )
-                  )}
+                    </div>
 
-                  {/* Rendering Content Sections */}
-                  <div className="space-y-10">
-                    {SECTIONS_CONFIG.map((sec, index) => {
-                      const completedContent = sections[sec.id];
-                      const isCurrent = currentSectionIndex === index;
-
-                      if (completedContent) {
-                        return (
-                          <div key={sec.id} className="animate-fade-in border-t border-slate-100 pt-6 first:border-0 first:pt-0">
-                            <div className="prose max-w-none text-xs md:text-sm">
-                              {parseMarkdownToReact(completedContent)}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (generationStatus === "idle") {
-                        return (
-                          <div key={sec.id} className="border border-dashed border-slate-200/80 rounded-2xl p-5 bg-slate-50/30 space-y-2 text-xs">
-                            <div className="flex items-center gap-2 text-slate-400">
-                              <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
-                                {index + 1}
-                              </div>
-                              <h4 className="font-bold text-slate-700">{sec.name}</h4>
-                              <span className="text-[9px] font-mono bg-slate-100 px-2 py-0.5 rounded ml-auto">Borrador en Cola</span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 pl-7 leading-relaxed font-light">
-                              {sec.id === "diagnostico" && `Análisis crítico para ${formData.nombreNegocio || "su empresa"} enfocado en resolver el cuello de botella: ${formData.obstaculo || "[Obstáculo Principal]"}.`}
-                              {sec.id === "comparativa" && `Benchmarking en tiempo real contra competidores en ${formData.ubicacion || "su región"} de la industria ${formData.rubro || "General"}.`}
-                              {sec.id === "objetivos" && `3 metas SMART estructuradas para escalar ${formData.productoEstrella || "[Producto Estrella]"} en un plazo de ${formData.plazoMeta}.`}
-                              {sec.id === "plan" && `Hojas de ruta de 3 fases personalizadas según el tamaño del equipo (${formData.tamanoEquipo}) y herramientas (${formData.herramientasActuales}).`}
-                              {sec.id === "campanas" && `Campañas tácticas optimizadas distribuyendo el presupuesto de marketing de ${formData.presupuesto}.`}
-                              {sec.id === "calendario" && "Plan táctico de contenido orgánico TOFU, MOFU and BOFU con matriz de distribución."}
-                              {sec.id === "sistema" && "Protocolo comercial, velocidad de respuesta en CRM y mitigación de contingencias."}
-                            </p>
-                          </div>
-                        );
-                      }
-
-                      if (isCurrent) {
-                        return (
-                          <div key={sec.id} className="border border-blue-200/80 rounded-2xl p-5 bg-blue-50/20 space-y-3 animate-pulse text-xs">
-                            <div className="flex items-center gap-2 text-blue-600">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <h4 className="font-bold text-blue-800">{sec.name}</h4>
-                              <span className="text-[9px] font-mono bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full ml-auto font-bold">Redactando Sección...</span>
-                            </div>
-                            <p className="text-[11px] text-blue-600 pl-6 leading-relaxed font-medium">
-                              {LOADING_STATUSES[loadingMessageIndex]}
-                            </p>
-                          </div>
-                        );
-                      }
-
-                      return null;
-                    })}
+                    <div className="text-right shrink-0">
+                      <span className="font-display text-xs font-bold tracking-widest text-slate-900 block print:text-black">SCALING STRATEGY</span>
+                      <span className="text-[8px] font-mono tracking-wider text-blue-600 block uppercase font-bold">GROWTH PLATFORM</span>
+                      <span className="text-[9px] text-slate-400 font-mono mt-2 block">
+                        {new Date().toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric"
+                        })}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Footer metadata */}
-                <div className="border-t border-slate-150 pt-5 mt-8 text-center text-[9px] text-slate-400 flex flex-wrap justify-between gap-4 font-mono">
-                  <span>ID-PLAN: {selectedHistoryId ? selectedHistoryId.slice(0, 8).toUpperCase() : "PROTOTIPO-SCALING"}</span>
-                  <span>CONFIDENCIAL • {formData.nombreNegocio.toUpperCase() || "NEGOCIO"}.</span>
-                  <span>PÁGINA 1 DE 1</span>
-                </div>
-              </article>
+                  {/* Content Section Sheet */}
+                  <div className="space-y-8">
+                    {resumen ? (
+                      <div className="p-5 bg-blue-50/60 border-l-4 border-blue-600 rounded-r-2xl shadow-sm italic text-xs md:text-sm text-slate-900 leading-relaxed">
+                        "{resumen}"
+                      </div>
+                    ) : (
+                      generationStatus === "idle" && formData.nombreNegocio && (
+                        <div className="p-4 bg-slate-50 border border-slate-200/60 border-dashed rounded-2xl text-xs text-slate-600 italic">
+                          "Plan táctico estructurado para escalar el producto estrella <b>{formData.productoEstrella || "[Su Producto Estrella]"}</b> en <b>{formData.ubicacion || "[Ubicación de Operación]"}</b>, con una meta prioritaria a <b>{formData.plazoMeta}</b> de: <b>{formData.metaPrincipal || "[Meta Principal]"}</b>."
+                        </div>
+                      )
+                    )}
+
+                    {/* Rendering Content Sections */}
+                    <div className="space-y-10">
+                      {getSectionsForStrategy(selectedStrategyType, formData).map((sec, index) => {
+                        const completedContent = sections[sec.id];
+                        const isCurrent = currentSectionIndex === index;
+
+                        if (completedContent) {
+                           return (
+                             <div key={sec.id} className="animate-fade-in border-t border-slate-100 pt-6 first:border-0 first:pt-0">
+                               <div className="prose max-w-none text-xs md:text-sm">
+                                 {parseMarkdownToReact(completedContent)}
+                               </div>
+                             </div>
+                           );
+                        }
+
+                        if (generationStatus === "idle" || generationStatus === "selecting") {
+                           return (
+                             <div key={sec.id} className="border border-dashed border-slate-200/80 rounded-2xl p-5 bg-slate-50/30 space-y-2 text-xs">
+                               <div className="flex items-center gap-2 text-slate-400">
+                                 <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
+                                   {index + 1}
+                                 </div>
+                                 <h4 className="font-bold text-slate-700">{sec.name}</h4>
+                                 <span className="text-[9px] font-mono bg-slate-100 px-2 py-0.5 rounded ml-auto">Borrador en Cola</span>
+                               </div>
+                               <p className="text-[11px] text-slate-400 pl-7 leading-relaxed font-light">
+                                 Recomendaciones tácticas hiper-personalizadas para {formData.nombreNegocio || "su empresa"} enfocadas en potenciar {formData.productoEstrella || "su producto estrella"} con la máxima rentabilidad comercial.
+                               </p>
+                             </div>
+                           );
+                        }
+
+                        if (isCurrent) {
+                           return (
+                             <div key={sec.id} className="border border-blue-200/80 rounded-2xl p-5 bg-blue-50/20 space-y-3 animate-pulse text-xs">
+                               <div className="flex items-center gap-2 text-blue-600">
+                                 <Loader2 className="w-4 h-4 animate-spin" />
+                                 <h4 className="font-bold text-blue-800">{sec.name}</h4>
+                                 <span className="text-[9px] font-mono bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full ml-auto font-bold">Redactando Sección...</span>
+                               </div>
+                               <p className="text-[11px] text-blue-600 pl-6 leading-relaxed font-medium">
+                                 {LOADING_STATUSES[loadingMessageIndex]}
+                               </p>
+                             </div>
+                           );
+                        }
+
+                        return null;
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Footer metadata */}
+                  <div className="border-t border-slate-150 pt-5 mt-8 text-center text-[9px] text-slate-400 flex flex-wrap justify-between gap-4 font-mono">
+                    <span>ID-PLAN: {selectedHistoryId ? selectedHistoryId.slice(0, 8).toUpperCase() : "PROTOTIPO-SCALING"}</span>
+                    <span>CONFIDENCIAL • {formData.nombreNegocio.toUpperCase() || "NEGOCIO"}.</span>
+                    <span>PÁGINA 1 DE 1</span>
+                  </div>
+                </article>
+              ) : activeTab === "roi" ? (
+                <ROICalculator formData={formData} />
+              ) : activeTab === "hooks" ? (
+                <HookGenerator formData={formData} />
+              ) : (
+                <AnthropicPromptExporter formData={formData} />
+              )}
 
               {/* Error recovery block */}
               {generationStatus === "error" && errorMessage && (

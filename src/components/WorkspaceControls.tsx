@@ -1,10 +1,11 @@
 import React from "react";
-import { CheckCircle2, Copy, Printer, Save, Loader2, RotateCcw, PlusCircle } from "lucide-react";
+import { CheckCircle2, Copy, Printer, Save, Loader2, RotateCcw, PlusCircle, Download } from "lucide-react";
 import { FormData } from "../utils/prompts";
 
 interface WorkspaceControlsProps {
   formData: FormData;
   copyToClipboard: () => void;
+  downloadStrategy: () => void;
   handlePrint: () => void;
   saveStrategyToDB: () => void;
   isSaving: boolean;
@@ -16,6 +17,7 @@ interface WorkspaceControlsProps {
 export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({
   formData,
   copyToClipboard,
+  downloadStrategy,
   handlePrint,
   saveStrategyToDB,
   isSaving,
@@ -70,6 +72,14 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({
         >
           <Copy className="w-4 h-4 text-slate-400" />
           Copiar Estrategia (Markdown)
+        </button>
+
+        <button
+          onClick={downloadStrategy}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-slate-200 bg-white rounded-xl hover:border-blue-500 hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-display text-xs font-bold transition cursor-pointer"
+        >
+          <Download className="w-4 h-4 text-slate-400" />
+          Descargar Archivo (.md)
         </button>
 
         <button

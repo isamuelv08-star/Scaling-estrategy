@@ -45,7 +45,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       return !!(formData.descripcion?.trim() && formData.productoEstrella?.trim());
     }
     if (step === 3) {
-      return !!(formData.facturacion?.trim() && formData.ticketPromedio?.trim() && formData.margenUtilidad?.trim() && formData.presupuesto?.trim());
+      const baseValid = !!(formData.facturacion?.trim() && formData.ticketPromedio?.trim() && formData.margenUtilidad?.trim() && formData.presupuesto?.trim());
+      if (formData.invertidoEnAds === "Sí") {
+        return baseValid && !!(formData.montoInvertidoEnAds?.trim() && formData.plataformasAds?.trim());
+      }
+      return baseValid;
     }
     if (step === 4) {
       return !!(formData.metaPrincipal?.trim() && formData.publicoObjetivo?.trim() && formData.obstaculo?.trim());
@@ -405,6 +409,84 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   * Identifica qué canales ya están validados para enfocar las optimizaciones orgánicas o de pauta sin empezar de cero.
                 </p>
               </div>
+
+              {/* ¿Inversión previa en Ads? */}
+              <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-3">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                  ¿Ha invertido en Publicidad Paga (Ads) anteriormente? *
+                </label>
+                <div className="flex gap-6 pt-1">
+                  <label className="flex items-center gap-2 text-xs text-slate-700 font-medium cursor-pointer">
+                    <input
+                      type="radio"
+                      name="invertidoEnAds"
+                      value="Sí"
+                      checked={formData.invertidoEnAds === "Sí"}
+                      onChange={onChange}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                    />
+                    Sí, he invertido antes
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-slate-700 font-medium cursor-pointer">
+                    <input
+                      type="radio"
+                      name="invertidoEnAds"
+                      value="No"
+                      checked={formData.invertidoEnAds !== "Sí"}
+                      onChange={onChange}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                    />
+                    No, nunca he invertido
+                  </label>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-relaxed italic">
+                  * Nos ayuda a diagnosticar su nivel de madurez publicitaria y adaptar las recomendaciones estratégicas de pauta.
+                </p>
+              </div>
+
+              {formData.invertidoEnAds === "Sí" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
+                  <div className="p-4 rounded-2xl bg-blue-50/25 border border-blue-100/40 space-y-2">
+                    <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                      ¿Cuánto ha invertido (Monto / Mensual aproximado)? *
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="w-4 h-4 text-blue-500 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        name="montoInvertidoEnAds"
+                        value={formData.montoInvertidoEnAds || ""}
+                        onChange={onChange}
+                        placeholder="Ej. 500 USD/mes o 3,000 USD total"
+                        className="w-full text-xs bg-white border border-blue-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 outline-none transition"
+                      />
+                    </div>
+                    <p className="text-[9px] text-blue-600 leading-relaxed italic">
+                      * El presupuesto estimativo que ha invertido anteriormente en Ads.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-blue-50/25 border border-blue-100/40 space-y-2">
+                    <label className="block text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                      ¿En qué plataformas publicitarias? *
+                    </label>
+                    <div className="relative">
+                      <Globe className="w-4 h-4 text-blue-500 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        name="plataformasAds"
+                        value={formData.plataformasAds || ""}
+                        onChange={onChange}
+                        placeholder="Ej. Meta Ads (FB/IG), Google Search, TikTok Ads"
+                        className="w-full text-xs bg-white border border-blue-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 outline-none transition"
+                      />
+                    </div>
+                    <p className="text-[9px] text-blue-600 leading-relaxed italic">
+                      * Canales publicitarios digitales en los que ha corrido pauta.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
