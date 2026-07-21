@@ -1,0 +1,6 @@
+{
+  "name": "Generador de Estrategias iGenius",
+  "description": "Generador de planes de marketing completos y accionables para negocios PyME utilizando la API de Anthropic Claude con búsqueda web real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
