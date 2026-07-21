@@ -449,7 +449,7 @@ export default function App() {
 
         const payload: any = {
           action: "generate",
-          system: "Eres el Consultor Principal de Scaling Strategy, una firma premium de consultoría de crecimiento y aceleración empresarial para PyMEs. Responde con altísimo nivel estratégico, de manera asertiva, denso en valor práctico, usando un vocabulario corporativo sofisticado de negocios y estructurando tu respuesta estrictamente en un español elegante y profesional.",
+          system: "Eres el Consultor Principal de Scaling Strategy, una firma de consultoría de crecimiento para PyMEs. Responde con nivel estratégico real, denso en valor práctico, pero en lenguaje CLARO que cualquier dueño de negocio sin formación en marketing pueda entender sin buscar nada en Google. Si usas una sigla o término técnico (CAC, LTV, ROAS, TOFU, etc.), defínela la primera vez que aparece, entre paréntesis, en una frase simple. Evita jerga que no se explica a sí misma.",
           messages: [{ role: "user", content: promptText }],
           max_tokens: 1500 // Optimized from 3000 to 1500 to keep responses focused and avoid timeouts or connection pauses
         };
@@ -506,7 +506,7 @@ export default function App() {
       const summaryData = await invokeEdgeFunctionWithRetry(
         {
           action: "generate",
-          system: "Eres el Socio Director de Scaling Strategy. Tu especialidad es sintetizar reportes densos en resúmenes sumamente persuasivos, profesionales y precisos.",
+          system: "Eres el Socio Director de Scaling Strategy. Tu especialidad es sintetizar reportes densos en resúmenes claros y persuasivos que un dueño de negocio entiende en una sola lectura, sin jerga sin explicar.",
           messages: [{ role: "user", content: summaryPromptText }],
           max_tokens: 1000
         },
@@ -616,7 +616,14 @@ export default function App() {
           });
           setWizardStep(1);
         }
-        setSections(est.secciones || {});
+        const rawSecciones = est.secciones;
+        const safeSections: Record<string, string> = {};
+        if (rawSecciones && typeof rawSecciones === "object" && !Array.isArray(rawSecciones)) {
+          Object.entries(rawSecciones).forEach(([k, v]) => {
+            if (typeof v === "string") safeSections[k] = v;
+          });
+        }
+        setSections(safeSections);
         setResumen(est.resumen || "");
         setGenerationStatus("finished"); // Mark as finished so edit controls render
         setIsWorkspaceActive(true);
@@ -787,7 +794,7 @@ export default function App() {
                   wizardStep={wizardStep}
                   setWizardStep={setWizardStep}
                   onGenerate={() => generateStrategy(0)}
-                  isGenerating={generationStatus === "generating"}
+                  isGenerating={false}
                   triggerToast={triggerToast}
                 />
               )}
@@ -1033,7 +1040,7 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => {
-                      loadHistoryItem(item);
+                      loadHistoryItem(item.id);
                       setIsHistoryOpen(false);
                     }}
                     className={`group w-full p-4 rounded-2xl border text-left transition flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-50 hover:border-slate-300 ${

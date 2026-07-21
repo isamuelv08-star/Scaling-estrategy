@@ -1,12 +1,12 @@
 import React from "react";
 
 /**
- * Parses simple Markdown text into highly styled React JSX nodes.
- * Supports ## (h2), ### (h3), - or * (lists with items grouped together),
- * and **bold** formatting with beautiful colors and spacing for a premium light layout.
+ * Parses simple Markdown text into styled React JSX nodes.
+ * Supports ## (h2), ### (h3), nested "- " lists (indentation-aware),
+ * and **bold** formatting.
  */
-export function parseMarkdownToReact(text: string): React.ReactNode {
-  if (!text) return null;
+export function parseMarkdownToReact(text: unknown): React.ReactNode {
+  if (typeof text !== "string" || !text.trim()) return null;
 
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
@@ -25,29 +25,71 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
     });
   };
 
-  let inList = false;
-  let listItems: React.ReactNode[] = [];
+  type ListLine = { depth: number; content: string; key: string };
+  let listBuffer: ListLine[] = [];
 
-  const flushList = (key: number) => {
-    if (listItems.length > 0) {
-      elements.push(
-        <ul
-          key={`list-${key}`}
-          className="list-disc pl-6 my-5 space-y-2.5 text-slate-700 text-sm md:text-base leading-relaxed"
-        >
-          {listItems}
-        </ul>
-      );
-      listItems = [];
-      inList = false;
-    }
+  const renderListBuffer = (key: string) => {
+    if (listBuffer.length === 0) return null;
+
+    const buildTree = (items: ListLine[], depth: number, startIdx: number): [React.ReactNode[], number] => {
+      const nodes: React.ReactNode[] = [];
+      let i = startIdx;
+      while (i < items.length && items[i].depth >= depth) {
+        if (items[i].depth > depth) {
+          i++;
+          continue;
+        }
+        const item = items[i];
+        const isParentLabel = depth === 0 && /\*\*[^*]+:?\*\*\s*$/.test(item.content.trim());
+        let children: React.ReactNode[] = [];
+        let next = i + 1;
+        if (next < items.length && items[next].depth > depth) {
+          const [childNodes, newNext] = buildTree(items, depth + 1, next);
+          children = childNodes;
+          next = newNext;
+        }
+        nodes.push(
+          <li
+            key={item.key}
+            className={
+              depth === 0
+                ? isParentLabel
+                  ? "leading-relaxed text-slate-800 font-semibold mt-3 first:mt-0"
+                  : "leading-relaxed text-slate-700"
+                : "leading-relaxed text-slate-600 text-[0.95em]"
+            }
+          >
+            {parseInlineBold(item.content)}
+            {children.length > 0 && (
+              <ul className="list-disc pl-5 mt-1.5 space-y-1.5 font-normal">{children}</ul>
+            )}
+          </li>
+        );
+        i = next;
+      }
+      return [nodes, i];
+    };
+
+    const [topNodes] = buildTree(listBuffer, 0, 0);
+    listBuffer = [];
+    return (
+      <ul key={`list-${key}`} className="list-disc pl-6 my-5 space-y-2.5 text-slate-700 text-sm md:text-base leading-relaxed">
+        {topNodes}
+      </ul>
+    );
+  };
+
+  const flushList = (key: string) => {
+    const rendered = renderListBuffer(key);
+    if (rendered) elements.push(rendered);
   };
 
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
+    const leadingSpaces = line.length - line.trimStart().length;
 
     if (trimmedLine.startsWith("## ")) {
-      flushList(index);
+      flushList(`${index}`);
       const content = trimmedLine.slice(3);
       elements.push(
         <h2
@@ -59,7 +101,7 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
         </h2>
       );
     } else if (trimmedLine.startsWith("### ")) {
-      flushList(index);
+      flushList(`${index}`);
       const content = trimmedLine.slice(4);
       elements.push(
         <h3
@@ -70,30 +112,21 @@ export function parseMarkdownToReact(text: string): React.ReactNode {
         </h3>
       );
     } else if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ")) {
-      inList = true;
-      const content = trimmedLine.slice(2);
-      listItems.push(
-        <li key={`li-${index}`} className="leading-relaxed text-slate-700 hover:text-slate-900 transition-colors duration-150">
-          {parseInlineBold(content)}
-        </li>
-      );
+      const depth = Math.min(Math.floor(leadingSpaces / 2), 3);
+      listBuffer.push({ depth, content: trimmedLine.slice(2), key: `li-${index}` });
     } else if (trimmedLine === "") {
-      flushList(index);
+      flushList(`${index}`);
     } else {
-      flushList(index);
+      flushList(`${index}`);
       elements.push(
-        <p
-          key={index}
-          className="text-slate-600 text-sm md:text-base leading-relaxed mb-5 font-normal"
-        >
+        <p key={index} className="text-slate-600 text-sm md:text-base leading-relaxed mb-5 font-normal">
           {parseInlineBold(trimmedLine)}
         </p>
       );
     }
   });
 
-  // Flush any remaining list items at the end
-  flushList(lines.length);
+  flushList("end");
 
   return <div className="space-y-1.5">{elements}</div>;
 }

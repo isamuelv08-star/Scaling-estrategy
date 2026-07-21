@@ -260,7 +260,7 @@ Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 (Explica la estrategia de embudo orgánico para ${data.nombreNegocio} con la distribución 60% TOFU [Atracción masiva], 25% MOFU [Nutrición y autoridad], y 15% BOFU [Conversión directa sobre ${data.productoEstrella}]).
 
 ### 6.2. Parrilla de 6 Piezas de Contenido Críticas (Primeras 2 Semanas)
-Detalla exactamente 6 piezas reales de contenido:
+Detalla exactamente 6 piezas reales de contenido. Indenta cada sub-punto con 2 espacios antes del guion, para mantener la jerarquía visual:
 - **Pieza 1 (TOFU - Atracción):**
   - **Canal/Plataforma:**
   - **Formato:** (ej. Video corto/Reel, carrusel, newsletter, etc.)
@@ -268,7 +268,7 @@ Detalla exactamente 6 piezas reales de contenido:
   - **Estructura/Desarrollo:** (Paso a paso del cuerpo de la pieza)
   - **Llamado a la Acción (CTA):**
   - **Pilar Temático:**
-- (Repite esta estructura exacta para las Piezas 2 a 6. Asegúrate de incluir 3 piezas TOFU, 2 MOFU y 1 BOFU para respetar los porcentajes).
+- (Repite esta estructura exacta para las Piezas 2 a 6, asegurándote de indentar cada sub-punto con 2 espacios antes del guion. Incluye 3 piezas TOFU, 2 MOFU y 1 BOFU para respetar los porcentajes).
 `
   },
   {
