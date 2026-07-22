@@ -375,7 +375,7 @@ export default function App() {
         consultor_nombre: nombre,
         accent_color: color,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: "user_id" });
       if (error) throw error;
       triggerToast("Configuración de marca guardada en su cuenta", "success");
     } catch (err: any) {

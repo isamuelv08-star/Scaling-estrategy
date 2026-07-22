@@ -138,229 +138,223 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-0 md:p-6 lg:p-8 relative overflow-hidden bg-slate-50/50">
-      {/* Decorative background light bubbles behind everything */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-blue-100/20 via-indigo-50/10 to-transparent rounded-full blur-[140px] pointer-events-none" />
+    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-12 items-stretch bg-slate-50 relative z-10">
       
-      {/* Clean integrated main container */}
-      <div className="w-full max-w-6xl bg-white border border-slate-100 rounded-none md:rounded-[32px] shadow-2xl shadow-slate-150/50 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[80vh] items-stretch relative z-10">
+      {/* LEFT COLUMN: SOLID TOP-TO-BOTTOM BRAND PANEL */}
+      <div className="lg:col-span-7 bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 text-white p-8 md:p-16 lg:p-20 flex flex-col justify-between relative overflow-hidden">
         
-        {/* LEFT COLUMN: FIXED BRAND SPLIT PANEL (Solid top-to-bottom, no margins, integrated left layout) */}
-        <div className="lg:col-span-7 bg-gradient-to-br from-blue-950 via-indigo-950 to-slate-950 text-white p-8 md:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
-          
-          {/* Subtle grid background mask for modern aesthetic */}
-          <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-60" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -ml-24 -mb-24" />
+        {/* Subtle grid background mask for modern aesthetic */}
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none opacity-60" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -ml-32 -mb-32" />
+        <div className="absolute top-10 right-10 w-96 h-96 bg-white/5 rounded-full blur-[100px] pointer-events-none" />
 
-          {/* Top content */}
-          <div className="space-y-6 relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-              <Sparkles className="w-3.5 h-3.5 text-blue-300 animate-pulse" />
-              <span className="text-[9px] font-mono tracking-[0.18em] text-blue-200 font-bold uppercase">
-                {user ? `CONSULTOR EN LÍNEA` : "SISTEMA DE ACELERACIÓN IA"}
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              <h1 className="font-display text-3xl md:text-5xl font-black tracking-tight leading-[1.05] text-white">
-                Acelere el Crecimiento de su Negocio
-              </h1>
-              <p className="text-xs md:text-sm text-indigo-200/90 leading-relaxed font-light max-w-xl">
-                Alinee sus unit economics, audite su competencia local y cree embudos comerciales automáticos de alta conversión en minutos con precisión algorítmica premium.
-              </p>
-            </div>
-          </div>
-
-          {/* Dynamic sliding container at the bottom */}
-          <div className="mt-12 pt-8 border-t border-white/10 relative z-10">
-            <span className="text-[9px] font-mono tracking-widest text-blue-300 font-bold uppercase block mb-3.5">
-              Módulos de Precisión
+        {/* Top Content Area */}
+        <div className="space-y-8 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+            <Sparkles className="w-3.5 h-3.5 text-blue-300 animate-pulse" />
+            <span className="text-[10px] font-mono tracking-[0.2em] text-blue-200 font-bold uppercase">
+              {user ? `CONSULTOR EN LÍNEA` : "SISTEMA DE ACELERACIÓN IA"}
             </span>
-            
-            <div className="relative min-h-[140px] bg-white/[0.03] backdrop-blur-sm rounded-2xl p-6 border border-white/5 flex flex-col justify-between">
-              
-              {/* Feature Slide Loop */}
-              <div className="relative w-full h-[85px] overflow-hidden">
-                {features.map((feat, idx) => (
-                  <div
-                    key={idx}
-                    className={`transition-all duration-500 absolute inset-0 flex gap-4 ${
-                      idx === activeFeatureIndex 
-                        ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" 
-                        : "opacity-0 -translate-y-4 scale-95 pointer-events-none"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/5">
-                      {feat.icon}
-                    </div>
-                    <div className="space-y-1 pr-2">
-                      <h4 className="text-xs font-bold text-white tracking-wide uppercase">
-                        {feat.title}
-                      </h4>
-                      <p className="text-[11px] md:text-xs text-indigo-150/80 leading-normal font-light">
-                        {feat.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Slider Dots */}
-              <div className="flex items-center gap-1.5 mt-2 self-end">
-                {features.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveFeatureIndex(idx)}
-                    className={`h-1 rounded-full transition-all duration-350 cursor-pointer ${
-                      idx === activeFeatureIndex ? "w-5 bg-blue-400" : "w-1.5 bg-white/20 hover:bg-white/40"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
 
+          <div className="space-y-5">
+            <h1 className="font-display text-4xl md:text-5.5xl lg:text-6xl font-black tracking-tight leading-[1.05] text-white">
+              Acelere el Crecimiento de su Negocio
+            </h1>
+            <p className="text-sm md:text-base text-indigo-200/90 leading-relaxed font-light max-w-xl">
+              Alinee sus unit economics, audite su competencia local y cree embudos comerciales de alta conversión en minutos con precisión algorítmica premium.
+            </p>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: PREMIUM FLOAT ACCES PANEL (Centered with rich shadows) */}
-        <div className="lg:col-span-5 bg-slate-50/50 flex flex-col items-center justify-center p-6 md:p-8 relative">
+        {/* Sliding modules slider at the bottom */}
+        <div className="mt-16 pt-10 border-t border-white/10 relative z-10">
+          <span className="text-[10px] font-mono tracking-widest text-blue-300 font-bold uppercase block mb-4">
+            Módulos de Precisión Incorporados
+          </span>
           
-          {/* Subtle light visual anchor */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-slate-100/50 to-white/40 pointer-events-none" />
-
-          {/* Floating Premium Card */}
-          <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-8 relative z-10">
+          <div className="relative min-h-[140px] bg-white/[0.03] backdrop-blur-sm rounded-2xl p-6 border border-white/5 flex flex-col justify-between">
             
-            {!user ? (
-              // PREMIUM CLEAN LOGIN FORM
-              <form onSubmit={handleInlineLogin} className="space-y-6">
-                <div className="space-y-2 text-center">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-1">
-                    <User className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-display text-xl font-black text-slate-900 tracking-tight">
-                    Bienvenido
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-light leading-relaxed max-w-[240px] mx-auto">
-                    Inicie sesión de manera directa para guardar planes de escalado, configuraciones y marcas.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Correo Electrónico
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="socio@suagencia.com"
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Contraseña
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 cursor-pointer disabled:opacity-75"
+            {/* Feature Slide Loop */}
+            <div className="relative w-full h-[90px] overflow-hidden">
+              {features.map((feat, idx) => (
+                <div
+                  key={idx}
+                  className={`transition-all duration-500 absolute inset-0 flex gap-4 ${
+                    idx === activeFeatureIndex 
+                      ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" 
+                      : "opacity-0 -translate-y-4 scale-95 pointer-events-none"
+                  }`}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Verificando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <KeyRound className="w-4 h-4" />
-                      <span>Ingresar con Acceso Seguro</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="pt-4 border-t border-slate-100 text-center text-[11px] text-slate-500">
-                  ¿Aún no tiene cuenta?{" "}
-                  <button
-                    type="button"
-                    onClick={onLoginClick}
-                    className="text-blue-600 hover:underline font-bold cursor-pointer"
-                  >
-                    Regístrese gratis aquí
-                  </button>
-                </div>
-              </form>
-            ) : (
-              // LOGGED IN ACTION OPTIONS
-              <div className="space-y-6">
-                <div className="space-y-2 text-center">
-                  <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-1">
-                    <CheckCircle className="w-6 h-6 animate-pulse" />
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/5">
+                    {feat.icon}
                   </div>
-                  <span className="text-[9px] font-mono tracking-[0.2em] text-emerald-600 font-bold uppercase block">
-                    CONSOLA INTEGRADA
-                  </span>
-                  <h3 className="font-display text-lg font-black text-slate-900 tracking-tight truncate max-w-[250px] mx-auto">
-                    {user.user_metadata?.display_name || user.email?.split("@")[0]}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 truncate max-w-[250px] mx-auto font-light">{user.email}</p>
+                  <div className="space-y-1 pr-2">
+                    <h4 className="text-xs font-bold text-white tracking-wide uppercase">
+                      {feat.title}
+                    </h4>
+                    <p className="text-[11px] md:text-xs text-indigo-150/80 leading-normal font-light">
+                      {feat.desc}
+                    </p>
+                  </div>
                 </div>
+              ))}
+            </div>
 
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={handleGenerate}
-                    className="w-full group bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 px-4 text-xs font-bold transition-all duration-200 flex items-center justify-between shadow-md shadow-blue-600/10 cursor-pointer hover:-translate-y-0.5"
-                  >
-                    <span>Comenzar Nueva Estrategia</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-
-                  <button
-                    onClick={onOpenHistory}
-                    className="w-full border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold transition flex items-center justify-between cursor-pointer"
-                  >
-                    <span>Historial Guardado ({historyCount})</span>
-                    <History className="w-4 h-4 text-slate-400" />
-                  </button>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
-                  <span className="text-slate-400 text-[10px] font-mono">Panel seguro</span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-red-500 hover:text-red-600 font-bold flex items-center gap-1 cursor-pointer transition"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Salir</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Slider Dots */}
+            <div className="flex items-center gap-1.5 mt-2 self-end">
+              {features.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveFeatureIndex(idx)}
+                  className={`h-1 rounded-full transition-all duration-350 cursor-pointer ${
+                    idx === activeFeatureIndex ? "w-6 bg-blue-400" : "w-1.5 bg-white/20 hover:bg-white/40"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
       </div>
+
+      {/* RIGHT COLUMN: FLOATING CLEAN ENTRY CARD CENTERED */}
+      <div className="lg:col-span-5 bg-slate-50 flex flex-col items-center justify-center p-8 md:p-16 relative">
+        {/* Subtle lighting overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-slate-100/50 to-white/40 pointer-events-none" />
+
+        {/* Floating Entry Box */}
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-slate-200/80 border border-slate-100 p-8 md:p-10 relative z-10">
+          
+          {!user ? (
+            // PREMIUM CLEAN LOGIN FORM - NO EXTRA BORDERS OR NOISE
+            <form onSubmit={handleInlineLogin} className="space-y-6">
+              <div className="space-y-3 text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-1">
+                  <User className="w-5 h-5" />
+                </div>
+                <h3 className="font-display text-2xl font-black text-slate-900 tracking-tight">
+                  Bienvenido
+                </h3>
+                <p className="text-xs text-slate-500 font-light leading-relaxed max-w-[260px] mx-auto">
+                  Inicie sesión de manera directa para guardar sus planes de escalado, configuraciones de negocio y marcas.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Correo Electrónico
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="socio@suagencia.com"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 cursor-pointer disabled:opacity-75"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Verificando ingreso...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4" />
+                    <span>Ingresar con Acceso Seguro</span>
+                  </>
+                )}
+              </button>
+
+              <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+                ¿Aún no tiene cuenta?{" "}
+                <button
+                  type="button"
+                  onClick={onLoginClick}
+                  className="text-blue-600 hover:underline font-bold cursor-pointer"
+                >
+                  Regístrese gratis aquí
+                </button>
+              </div>
+            </form>
+          ) : (
+            // LOGGED IN ACTIONS
+            <div className="space-y-6">
+              <div className="space-y-3 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-1">
+                  <CheckCircle className="w-6 h-6 animate-pulse" />
+                </div>
+                <span className="text-[9px] font-mono tracking-[0.2em] text-emerald-600 font-bold uppercase block">
+                  CONSOLA ACTIVA
+                </span>
+                <h3 className="font-display text-xl font-black text-slate-900 tracking-tight truncate max-w-[280px] mx-auto">
+                  {user.user_metadata?.display_name || user.email?.split("@")[0]}
+                </h3>
+                <p className="text-xs text-slate-400 truncate max-w-[280px] mx-auto font-light">{user.email}</p>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <button
+                  onClick={handleGenerate}
+                  className="w-full group bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 px-4 text-xs font-bold transition-all duration-200 flex items-center justify-between shadow-md shadow-blue-600/10 cursor-pointer hover:-translate-y-0.5"
+                >
+                  <span>Comenzar Nueva Estrategia</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </button>
+
+                <button
+                  onClick={onOpenHistory}
+                  className="w-full border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold transition flex items-center justify-between cursor-pointer"
+                >
+                  <span>Historial Guardado ({historyCount})</span>
+                  <History className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
+                <span className="text-slate-400 text-[10px] font-mono">Consola lista</span>
+                <button
+                  onClick={handleLogout}
+                  className="text-red-500 hover:text-red-600 font-bold flex items-center gap-1 cursor-pointer transition"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Salir</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 };

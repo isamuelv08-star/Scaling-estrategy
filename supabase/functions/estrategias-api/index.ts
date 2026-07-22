@@ -23,6 +23,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from("estrategias")
         .select("id, nombre_negocio, rubro, created_at")
+        .is("user_id", null)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -46,6 +47,7 @@ serve(async (req) => {
         .from("estrategias")
         .select("*")
         .eq("id", id)
+        .is("user_id", null)
         .single();
 
       if (error) throw error;
@@ -104,7 +106,7 @@ serve(async (req) => {
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-3-5-sonnet-20241022",
+            model: "claude-sonnet-4-6",
             max_tokens: max_tokens || 1500, // Optimized token limit
             system,
             messages,
