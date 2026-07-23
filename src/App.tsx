@@ -340,14 +340,20 @@ export default function App() {
     });
 
     // Listen to changes
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user);
         loadUserProfile(session.user.id);
       } else {
         setUser(null);
+        setIsWorkspaceActive(false);
+        setIsHistoryOpen(false);
+        setIsConfigModalOpen(false);
         setConsultorNombre("SCALING STRATEGY");
         setAccentColor("blue");
+        if (event === "SIGNED_OUT") {
+          setIsAuthModalOpen(true);
+        }
       }
     });
 
@@ -1268,7 +1274,7 @@ export default function App() {
       )}
 
       {/* CONDITIONAL RENDER: WELCOME PAGE OR INTEGRATED CONSOLE */}
-      {!isWorkspaceActive && !hasStrategyData ? (
+      {!isWorkspaceActive ? (
         <WelcomeScreen
           onStart={(initialData) => {
             setFormData(initialData);
@@ -1393,6 +1399,9 @@ export default function App() {
                     } finally {
                       setUser(null);
                       setIsWorkspaceActive(false);
+                      setIsHistoryOpen(false);
+                      setIsConfigModalOpen(false);
+                      setIsAuthModalOpen(true);
                       triggerToast("Sesión cerrada correctamente", "info");
                     }
                   }}
@@ -1424,27 +1433,17 @@ export default function App() {
             
             {/* CANVAS HEADER BRANDING */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6 print:hidden">
-              <div className="flex items-center gap-4">
-                <div className="bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 p-3.5 rounded-2xl shadow-lg shadow-blue-600/20 text-white shrink-0">
-                  <TrendingUp className="w-7 h-7" />
-                </div>
-                <div className="text-left space-y-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="font-display text-2xl md:text-3.5xl font-black tracking-tight leading-none text-slate-900">
-                      <span>¡Bienvenido, </span>
-                      <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                        {user?.user_metadata?.display_name || consultorNombre || "Consultor"}
-                      </span>
-                      <span>!</span>
-                    </h1>
-                    <span className="bg-blue-50 text-blue-700 text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-blue-100 shrink-0">
-                      Console
-                    </span>
-                  </div>
-                  <p className="text-xs md:text-sm font-semibold text-slate-600">
-                    Crea las mejores estrategias para tu negocio.
-                  </p>
-                </div>
+              <div className="text-left space-y-1">
+                <h1 className="font-display text-2xl md:text-3.5xl font-black tracking-tight leading-none text-slate-900">
+                  <span>¡Bienvenido, </span>
+                  <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                    {user?.user_metadata?.display_name || consultorNombre || "Consultor"}
+                  </span>
+                  <span>!</span>
+                </h1>
+                <p className="text-xs md:text-sm font-semibold text-slate-600 mt-1">
+                  Crea las mejores estrategias para tu negocio.
+                </p>
               </div>
             </div>
 
