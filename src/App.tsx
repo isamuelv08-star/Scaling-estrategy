@@ -60,6 +60,7 @@ import { HookGenerator } from "./components/HookGenerator.tsx";
 import { StrategySelector } from "./components/StrategySelector.tsx";
 import { TaskBoard } from "./components/TaskBoard.tsx";
 import { ConfiguracionModal } from "./components/ConfiguracionModal.tsx";
+import { StrategyChat } from "./components/StrategyChat.tsx";
 import { ListTodo } from "lucide-react";
 
 const LOADING_STATUSES = [
@@ -1611,32 +1612,39 @@ export default function App() {
               )}
 
               {generationStatus === "finished" && (
-                <WorkspaceControls
-                  formData={formData}
-                  consultorNombre={consultorNombre}
-                  selectedStrategyType={selectedStrategyType}
-                  copyToClipboard={copyToClipboard}
-                  copyToClipboardClean={copyToClipboardClean}
-                  downloadStrategy={downloadStrategy}
-                  downloadCleanTxt={downloadCleanTxt}
-                  downloadPremiumHtml={downloadPremiumHtml}
-                  handlePrint={handlePrint}
-                  saveStrategyToDB={saveStrategyToDB}
-                  isSaving={isSaving}
-                  saveSuccess={saveSuccess}
-                  onEditOnboarding={() => {
-                    setGenerationStatus("idle");
-                    setWizardStep(1);
-                  }}
-                  startNewStrategy={startNewStrategy}
-                  onSelectOtherStrategy={() => {
-                    setGenerationStatus("selecting");
-                  }}
-                  onSelectStrategy={(strategyId) => {
-                    setSelectedStrategyType(strategyId);
-                    generateStrategy(0, strategyId);
-                  }}
-                />
+                <div className="space-y-3">
+                  <StrategyChat
+                    planContext={Object.values(sections).join("\n\n")}
+                    businessName={formData.nombreNegocio}
+                    invokeEdgeFunction={(payload) => invokeEdgeFunctionWithRetry(payload, () => {})}
+                  />
+                  <WorkspaceControls
+                    formData={formData}
+                    consultorNombre={consultorNombre}
+                    selectedStrategyType={selectedStrategyType}
+                    copyToClipboard={copyToClipboard}
+                    copyToClipboardClean={copyToClipboardClean}
+                    downloadStrategy={downloadStrategy}
+                    downloadCleanTxt={downloadCleanTxt}
+                    downloadPremiumHtml={downloadPremiumHtml}
+                    handlePrint={handlePrint}
+                    saveStrategyToDB={saveStrategyToDB}
+                    isSaving={isSaving}
+                    saveSuccess={saveSuccess}
+                    onEditOnboarding={() => {
+                      setGenerationStatus("idle");
+                      setWizardStep(1);
+                    }}
+                    startNewStrategy={startNewStrategy}
+                    onSelectOtherStrategy={() => {
+                      setGenerationStatus("selecting");
+                    }}
+                    onSelectStrategy={(strategyId) => {
+                      setSelectedStrategyType(strategyId);
+                      generateStrategy(0, strategyId);
+                    }}
+                  />
+                </div>
               )}
             </div>
 
