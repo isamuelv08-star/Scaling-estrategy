@@ -1570,7 +1570,7 @@ export default function App() {
               {/* PANEL 2: FORMULARIO Y CONTROLES (IZQUIERDA) */}
               <div 
                 style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${leftPanelWidth}%` : '100%' }}
-                className="w-full lg:shrink-0 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pl-1 pr-3.5 py-1 space-y-6"
+                className="w-full lg:shrink-0 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pl-1 pr-2.5 py-1 space-y-6"
               >
               {generationStatus === "idle" && (
                 <OnboardingWizard
@@ -1613,6 +1613,8 @@ export default function App() {
               {generationStatus === "finished" && (
                 <WorkspaceControls
                   formData={formData}
+                  consultorNombre={consultorNombre}
+                  selectedStrategyType={selectedStrategyType}
                   copyToClipboard={copyToClipboard}
                   copyToClipboardClean={copyToClipboardClean}
                   downloadStrategy={downloadStrategy}
@@ -1629,6 +1631,10 @@ export default function App() {
                   startNewStrategy={startNewStrategy}
                   onSelectOtherStrategy={() => {
                     setGenerationStatus("selecting");
+                  }}
+                  onSelectStrategy={(strategyId) => {
+                    setSelectedStrategyType(strategyId);
+                    generateStrategy(0, strategyId);
                   }}
                 />
               )}
@@ -1766,15 +1772,17 @@ export default function App() {
                           })}
                         </span>
                         
-                        {/* Compact Header Expand Trigger */}
-                        <button
-                          onClick={() => setIsExpandedViewOpen(true)}
-                          className="p-1.5 bg-slate-100 hover:bg-blue-600 text-slate-600 hover:text-white rounded-lg transition-all duration-200 border border-slate-200/80 cursor-pointer flex items-center gap-1 text-[10px] font-bold shadow-2xs hover:shadow-xs group print:hidden"
-                          title="Pantalla completa modo lectura"
-                        >
-                          <Maximize2 className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
-                          <span className="hidden xl:inline">Expandir</span>
-                        </button>
+                        {/* Compact Header Expand Trigger (Only when strategy is finished) */}
+                        {generationStatus === "finished" && (
+                          <button
+                            onClick={() => setIsExpandedViewOpen(true)}
+                            className="p-1.5 bg-slate-100 hover:bg-blue-600 text-slate-600 hover:text-white rounded-lg transition-all duration-200 border border-slate-200/80 cursor-pointer flex items-center gap-1 text-[10px] font-bold shadow-2xs hover:shadow-xs group print:hidden"
+                            title="Pantalla completa modo lectura"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
+                            <span className="hidden xl:inline">Expandir</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1985,15 +1993,17 @@ export default function App() {
                     <span>PÁGINA 1 DE 1</span>
                   </div>
 
-                  {/* FLOATING ACTION BUTTON: Reading Mode / Expand Canvas */}
-                  <button
-                    onClick={() => setIsExpandedViewOpen(true)}
-                    className="absolute bottom-12 right-6 z-20 bg-slate-900/90 hover:bg-blue-600 text-white p-2.5 px-3.5 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md transition-all duration-200 flex items-center gap-2 text-xs font-bold border border-slate-700/60 group cursor-pointer hover:scale-105 active:scale-95 print:hidden"
-                    title="Abrir vista de lectura en pantalla completa"
-                  >
-                    <Maximize2 className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
-                    <span className="whitespace-nowrap hidden sm:inline">Lectura Completa</span>
-                  </button>
+                  {/* FLOATING ACTION BUTTON: Reading Mode / Expand Canvas (Only when strategy is finished) */}
+                  {generationStatus === "finished" && (
+                    <button
+                      onClick={() => setIsExpandedViewOpen(true)}
+                      className="absolute bottom-12 right-6 z-20 bg-slate-900/90 hover:bg-blue-600 text-white p-2.5 px-3.5 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md transition-all duration-200 flex items-center gap-2 text-xs font-bold border border-slate-700/60 group cursor-pointer hover:scale-105 active:scale-95 print:hidden"
+                      title="Abrir vista de lectura en pantalla completa"
+                    >
+                      <Maximize2 className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
+                      <span className="whitespace-nowrap hidden sm:inline">Lectura Completa</span>
+                    </button>
+                  )}
                 </article>
               ) : activeTab === "roi" ? (
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
