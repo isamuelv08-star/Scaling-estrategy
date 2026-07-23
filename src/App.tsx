@@ -1771,18 +1771,6 @@ export default function App() {
                             year: "numeric"
                           })}
                         </span>
-                        
-                        {/* Compact Header Expand Trigger (Only when strategy is finished) */}
-                        {generationStatus === "finished" && (
-                          <button
-                            onClick={() => setIsExpandedViewOpen(true)}
-                            className="p-1.5 bg-slate-100 hover:bg-blue-600 text-slate-600 hover:text-white rounded-lg transition-all duration-200 border border-slate-200/80 cursor-pointer flex items-center gap-1 text-[10px] font-bold shadow-2xs hover:shadow-xs group print:hidden"
-                            title="Pantalla completa modo lectura"
-                          >
-                            <Maximize2 className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
-                            <span className="hidden xl:inline">Expandir</span>
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1997,11 +1985,11 @@ export default function App() {
                   {generationStatus === "finished" && (
                     <button
                       onClick={() => setIsExpandedViewOpen(true)}
-                      className="absolute bottom-12 right-6 z-20 bg-slate-900/90 hover:bg-blue-600 text-white p-2.5 px-3.5 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md transition-all duration-200 flex items-center gap-2 text-xs font-bold border border-slate-700/60 group cursor-pointer hover:scale-105 active:scale-95 print:hidden"
+                      className="absolute bottom-10 right-6 z-20 bg-slate-900/95 hover:bg-blue-600 text-white py-2.5 px-4 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-blue-500/25 backdrop-blur-xl transition-all duration-300 flex items-center gap-2.5 text-xs font-bold border border-slate-700/80 group cursor-pointer hover:scale-105 active:scale-95 print:hidden ring-1 ring-white/10"
                       title="Abrir vista de lectura en pantalla completa"
                     >
                       <Maximize2 className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
-                      <span className="whitespace-nowrap hidden sm:inline">Lectura Completa</span>
+                      <span className="whitespace-nowrap tracking-wide">Lectura Completa</span>
                     </button>
                   )}
                 </article>
@@ -2367,32 +2355,32 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fade-in text-left">
           <div className="bg-white text-slate-800 w-full max-w-5xl h-full max-h-[94vh] rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden relative">
             {/* Modal Top Fixed Bar */}
-            <div className="shrink-0 bg-slate-900 text-white px-5 md:px-8 py-3.5 flex items-center justify-between border-b border-slate-800 z-10">
+            <div className="shrink-0 bg-white/95 backdrop-blur-md px-5 md:px-8 py-3.5 flex items-center justify-between border-b border-slate-200/90 shadow-2xs z-10">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 bg-blue-600/20 rounded-xl border border-blue-500/30 text-blue-400 shrink-0">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 shrink-0">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] font-mono tracking-widest text-blue-400 font-bold uppercase block">
+                  <span className={`text-[9px] font-mono tracking-widest ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase block`}>
                     MODO LECTURA COMPLETA
                   </span>
-                  <h2 className="text-xs md:text-sm font-bold text-white tracking-tight truncate">
+                  <h2 className="text-xs md:text-sm font-bold text-slate-900 tracking-tight truncate">
                     {formData.nombreNegocio || "Estrategia Corporativa"} — Plan de Crecimiento
                   </h2>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => handlePrint()}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer"
+                  className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-xl text-xs font-bold transition border border-slate-200 cursor-pointer shadow-2xs"
                 >
-                  <Printer className="w-3.5 h-3.5 text-blue-400" />
+                  <Printer className="w-3.5 h-3.5 text-blue-600" />
                   <span>Imprimir / PDF</span>
                 </button>
                 <button
                   onClick={() => setIsExpandedViewOpen(false)}
-                  className="p-1.5 md:p-2 bg-slate-800 hover:bg-red-600/80 text-slate-300 hover:text-white rounded-xl transition cursor-pointer border border-slate-700"
+                  className="p-1.5 md:p-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl transition cursor-pointer border border-slate-200"
                   title="Cerrar modo lectura"
                 >
                   <X className="w-5 h-5" />
