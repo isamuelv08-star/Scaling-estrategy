@@ -42,7 +42,9 @@ import {
   Edit,
   Palette,
   Trash2,
-  GripVertical
+  GripVertical,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
@@ -311,6 +313,9 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [tempSupabaseUrl, setTempSupabaseUrl] = useState<string>("");
   const [tempSupabaseAnonKey, setTempSupabaseAnonKey] = useState<string>("");
+
+  // Full-screen Reading Mode State
+  const [isExpandedViewOpen, setIsExpandedViewOpen] = useState<boolean>(false);
 
   // Resizable Dual Workspace Panels State
   const [leftPanelWidth, setLeftPanelWidth] = useState<number>(40); // Percentage width for left panel (between 25% and 65%)
@@ -1565,7 +1570,7 @@ export default function App() {
               {/* PANEL 2: FORMULARIO Y CONTROLES (IZQUIERDA) */}
               <div 
                 style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${leftPanelWidth}%` : '100%' }}
-                className="w-full lg:shrink-0 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar p-1 space-y-6"
+                className="w-full lg:shrink-0 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar pl-1 pr-3.5 py-1 space-y-6"
               >
               {generationStatus === "idle" && (
                 <OnboardingWizard
@@ -1708,24 +1713,34 @@ export default function App() {
                   id="printed-document-canvas"
                   className="flex-1 min-h-0 bg-white text-slate-800 rounded-3xl shadow-xs border border-slate-200/80 relative overflow-hidden flex flex-col print:h-auto print:overflow-visible print:p-0 print:shadow-none print:rounded-none print:border-none"
                 >
-                  {/* FIXED HEADER: Letterhead header block */}
-                  <div className="shrink-0 bg-white border-b border-slate-200/80 p-6 md:px-8 md:py-6 z-10 print:border-b print:border-zinc-300">
-                    <div className="flex flex-wrap items-start justify-between gap-6">
-                      <div className="space-y-2">
-                        <span className={`text-[8px] font-mono tracking-[0.25em] ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase block`}>
-                          PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
+                  {/* FIXED HEADER: Ultra-Compact Horizontal Letterhead */}
+                  <div className="shrink-0 bg-white border-b border-slate-200/80 px-4 md:px-6 py-2.5 md:py-3 z-10 print:border-b print:border-zinc-300">
+                    <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                      {/* Left Block: Eyebrow + Title + Inline Chips */}
+                      <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
+                        <span className={`text-[8px] font-mono tracking-[0.2em] ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase shrink-0`}>
+                          PLAN ESTRATÉGICO
                         </span>
-                        <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-slate-900 print:text-black leading-tight">
+                        <span className="text-slate-300 text-xs shrink-0">•</span>
+                        <h1 className="font-display text-sm md:text-base font-bold tracking-tight text-slate-900 truncate max-w-[200px] md:max-w-[280px] shrink-0">
                           {formData.nombreNegocio || "Nueva Estrategia"}
                         </h1>
-                        
-                        {/* Real-Time updating metadata chips */}
-                        <div className="flex flex-wrap items-center gap-y-1.5 gap-x-2.5 text-[10px] text-slate-500 pt-1 font-medium">
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Modelo: <b>{formData.tipoModelo}</b></span>
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Rubro: <b>{formData.rubro || "General"}</b></span>
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Horizonte: <b>{formData.plazoMeta}</b></span>
+
+                        {/* Inline metadata chips */}
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-600 flex-wrap">
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap">
+                            {formData.tipoModelo}
+                          </span>
+                          {formData.rubro && (
+                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap hidden md:inline-block">
+                              {formData.rubro}
+                            </span>
+                          )}
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap">
+                            {formData.plazoMeta}
+                          </span>
                           {formData.ubicacion && (
-                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded flex items-center gap-1">
+                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap hidden lg:inline-flex items-center gap-1">
                               <MapPin className="w-2.5 h-2.5 text-slate-400" />
                               {formData.ubicacion}
                             </span>
@@ -1733,20 +1748,33 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <span className="font-display text-xs font-bold tracking-widest text-slate-900 block print:text-black">
-                          {consultorNombre.toUpperCase()}
-                        </span>
-                        <span className={`text-[8px] font-mono tracking-wider ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} block uppercase font-bold`}>
-                          GROWTH PLATFORM
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-mono mt-2 block">
+                      {/* Right Block: Brand & Date & Floating Expand Trigger */}
+                      <div className="flex items-center gap-3 shrink-0 text-right ml-auto">
+                        <div className="hidden sm:block text-right leading-tight">
+                          <span className="font-display text-[10px] font-bold tracking-wider text-slate-900 block">
+                            {consultorNombre.toUpperCase()}
+                          </span>
+                          <span className={`text-[8px] font-mono tracking-wider ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} uppercase font-bold block`}>
+                            GROWTH PLATFORM
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-150">
                           {new Date().toLocaleDateString("es-ES", {
                             day: "2-digit",
-                            month: "long",
+                            month: "short",
                             year: "numeric"
                           })}
                         </span>
+                        
+                        {/* Compact Header Expand Trigger */}
+                        <button
+                          onClick={() => setIsExpandedViewOpen(true)}
+                          className="p-1.5 bg-slate-100 hover:bg-blue-600 text-slate-600 hover:text-white rounded-lg transition-all duration-200 border border-slate-200/80 cursor-pointer flex items-center gap-1 text-[10px] font-bold shadow-2xs hover:shadow-xs group print:hidden"
+                          title="Pantalla completa modo lectura"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
+                          <span className="hidden xl:inline">Expandir</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1956,6 +1984,16 @@ export default function App() {
                     <span>CONFIDENCIAL • {formData.nombreNegocio.toUpperCase() || "NEGOCIO"}.</span>
                     <span>PÁGINA 1 DE 1</span>
                   </div>
+
+                  {/* FLOATING ACTION BUTTON: Reading Mode / Expand Canvas */}
+                  <button
+                    onClick={() => setIsExpandedViewOpen(true)}
+                    className="absolute bottom-12 right-6 z-20 bg-slate-900/90 hover:bg-blue-600 text-white p-2.5 px-3.5 rounded-full shadow-lg hover:shadow-xl backdrop-blur-md transition-all duration-200 flex items-center gap-2 text-xs font-bold border border-slate-700/60 group cursor-pointer hover:scale-105 active:scale-95 print:hidden"
+                    title="Abrir vista de lectura en pantalla completa"
+                  >
+                    <Maximize2 className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
+                    <span className="whitespace-nowrap hidden sm:inline">Lectura Completa</span>
+                  </button>
                 </article>
               ) : activeTab === "roi" ? (
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
@@ -2309,6 +2347,107 @@ export default function App() {
               >
                 Guardar Configuración
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXPANDED FULL-SCREEN STRATEGY READING MODAL */}
+      {isExpandedViewOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fade-in text-left">
+          <div className="bg-white text-slate-800 w-full max-w-5xl h-full max-h-[94vh] rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden relative">
+            {/* Modal Top Fixed Bar */}
+            <div className="shrink-0 bg-slate-900 text-white px-5 md:px-8 py-3.5 flex items-center justify-between border-b border-slate-800 z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 bg-blue-600/20 rounded-xl border border-blue-500/30 text-blue-400 shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] font-mono tracking-widest text-blue-400 font-bold uppercase block">
+                    MODO LECTURA COMPLETA
+                  </span>
+                  <h2 className="text-xs md:text-sm font-bold text-white tracking-tight truncate">
+                    {formData.nombreNegocio || "Estrategia Corporativa"} — Plan de Crecimiento
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button
+                  onClick={() => handlePrint()}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Imprimir / PDF</span>
+                </button>
+                <button
+                  onClick={() => setIsExpandedViewOpen(false)}
+                  className="p-1.5 md:p-2 bg-slate-800 hover:bg-red-600/80 text-slate-300 hover:text-white rounded-xl transition cursor-pointer border border-slate-700"
+                  title="Cerrar modo lectura"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Expanded Document Canvas Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 md:p-10 space-y-8 bg-slate-50/60">
+              <div className="max-w-4xl mx-auto bg-white p-6 md:p-12 rounded-3xl shadow-xs border border-slate-200/80 space-y-8">
+                {/* Header in modal */}
+                <div className="border-b border-slate-200 pb-6 flex items-start justify-between flex-wrap gap-4">
+                  <div className="space-y-2">
+                    <span className={`text-[9px] font-mono tracking-widest ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase block`}>
+                      PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
+                    </span>
+                    <h1 className="font-display text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                      {formData.nombreNegocio || "Nueva Estrategia"}
+                    </h1>
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-600 pt-1">
+                      <span className="bg-slate-100 px-2.5 py-1 rounded-lg font-medium">Modelo: <b>{formData.tipoModelo}</b></span>
+                      {formData.rubro && <span className="bg-slate-100 px-2.5 py-1 rounded-lg font-medium">Rubro: <b>{formData.rubro}</b></span>}
+                      <span className="bg-slate-100 px-2.5 py-1 rounded-lg font-medium">Horizonte: <b>{formData.plazoMeta}</b></span>
+                      {formData.ubicacion && <span className="bg-slate-100 px-2.5 py-1 rounded-lg font-medium">Ubicación: <b>{formData.ubicacion}</b></span>}
+                    </div>
+                  </div>
+                  <div className="text-right font-mono text-xs text-slate-500 shrink-0">
+                    <span className="font-bold text-slate-900 block">{consultorNombre.toUpperCase()}</span>
+                    <span className={`${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold text-[10px]`}>GROWTH PLATFORM</span>
+                    <span className="block text-[10px] text-slate-400 mt-1">
+                      {new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Executive summary */}
+                {resumen && renderCleanSummary(resumen, accentColor)}
+
+                {/* All content sections */}
+                <div className="space-y-8">
+                  {renderableSections.map((sec, index) => {
+                    const completedContent = sections[sec.id];
+                    if (!completedContent) return null;
+                    const cleanedText = cleanSectionContent(completedContent);
+                    return (
+                      <div key={sec.id} className="bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 space-y-4 shadow-2xs">
+                        <div className="flex items-center gap-3 pb-3 border-b border-slate-150">
+                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-700">
+                            {getSectionIcon(sec.id)}
+                          </div>
+                          <div>
+                            <span className={`text-[9px] font-mono font-bold tracking-widest ${COLOR_THEMES[accentColor]?.text || "text-slate-400"} block uppercase`}>
+                              SECCIÓN {index + 1}
+                            </span>
+                            <h3 className="font-display text-base font-bold text-slate-900">{sec.name}</h3>
+                          </div>
+                        </div>
+                        <div className="prose max-w-none text-xs md:text-sm text-slate-700 leading-relaxed space-y-4">
+                          {parseMarkdownToReact(cleanedText)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
