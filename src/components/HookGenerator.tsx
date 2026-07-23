@@ -13,6 +13,7 @@ import {
   ExternalLink 
 } from "lucide-react";
 import { FormData } from "../utils/prompts";
+import { CustomSelect } from "./CustomSelect";
 
 interface HookGeneratorProps {
   formData: FormData;
@@ -168,17 +169,18 @@ export const HookGenerator: React.FC<HookGeneratorProps> = ({ formData }) => {
             <label className="text-xs font-bold text-slate-700 block">
               Tono de Comunicación
             </label>
-            <select
+            <CustomSelect
+              name="tone"
               value={tone}
               onChange={(e) => setTone(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition cursor-pointer"
-            >
-              <option value="Persuasivo">Persuasivo (Profesional y Convincente)</option>
-              <option value="Educativo">Educativo (Aporta valor práctico inmediato)</option>
-              <option value="Misterioso">Misterioso (Genera intriga comercial)</option>
-              <option value="Urgente">Urgente (Activa el miedo a perder la oportunidad)</option>
-              <option value="Contra-intuitivo">Contra-intuitivo (Desafía la norma común)</option>
-            </select>
+              options={[
+                { value: "Persuasivo", label: "Persuasivo (Profesional y Convincente)" },
+                { value: "Educativo", label: "Educativo (Aporta valor práctico inmediato)" },
+                { value: "Misterioso", label: "Misterioso (Genera intriga comercial)" },
+                { value: "Urgente", label: "Urgente (Activa el miedo a perder la oportunidad)" },
+                { value: "Contra-intuitivo", label: "Contra-intuitivo (Desafía la norma común)" }
+              ]}
+            />
           </div>
         </div>
 

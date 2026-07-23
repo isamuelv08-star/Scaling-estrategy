@@ -17,6 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import { FormData } from "../utils/prompts";
+import { CustomSelect } from "./CustomSelect";
 
 interface OnboardingWizardProps {
   formData: FormData;
@@ -145,19 +146,19 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   Modelo de Operación Comercial *
                 </label>
-                <select
+                <CustomSelect
                   name="tipoModelo"
                   value={formData.tipoModelo}
-                  onChange={onChange}
-                  className="w-full text-xs bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 px-3 text-slate-900 outline-none transition"
-                >
-                  <option value="Servicios B2B">Servicios B2B (Corporativo / Consultas)</option>
-                  <option value="Servicios B2C">Servicios B2C (Consumo Masivo / Particular)</option>
-                  <option value="Comercio Local / Retail">Comercio Local / Tienda Física / Restaurante</option>
-                  <option value="E-commerce / Venta Online">E-commerce / Venta Online</option>
-                  <option value="SaaS / Tecnología">SaaS / Suscripción Tecnológica</option>
-                  <option value="Creador / Infoproductos">Creador / Infoproductos / Formación</option>
-                </select>
+                  onChange={onChange as any}
+                  options={[
+                    { value: "Servicios B2B", label: "Servicios B2B (Corporativo / Consultas)" },
+                    { value: "Servicios B2C", label: "Servicios B2C (Consumo Masivo / Particular)" },
+                    { value: "Comercio Local / Retail", label: "Comercio Local / Tienda Física / Restaurante" },
+                    { value: "E-commerce / Venta Online", label: "E-commerce / Venta Online" },
+                    { value: "SaaS / Tecnología", label: "SaaS / Suscripción Tecnológica" },
+                    { value: "Creador / Infoproductos", label: "Creador / Infoproductos / Formación" }
+                  ]}
+                />
                 <p className="text-[10px] text-slate-400 leading-relaxed italic">
                   * Define si la estrategia óptima de captación se basará en prospección consultiva de alta gama o pauta digital transaccional.
                 </p>
@@ -258,17 +259,17 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                     Tamaño de Equipo / Capacidad
                   </label>
-                  <select
+                  <CustomSelect
                     name="tamanoEquipo"
                     value={formData.tamanoEquipo}
-                    onChange={onChange}
-                    className="w-full text-xs bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 px-3 text-slate-900 outline-none transition"
-                  >
-                    <option value="Solo yo (Autoempleado)">Solo yo (Autoempleado)</option>
-                    <option value="Pequeño (2-5 personas)">Pequeño (2-5 personas)</option>
-                    <option value="Mediano (6-15 personas)">Mediano (6-15 personas)</option>
-                    <option value="Estructurado (+15 personas)">Estructurado (+15 personas)</option>
-                  </select>
+                    onChange={onChange as any}
+                    options={[
+                      { value: "Solo yo (Autoempleado)", label: "Solo yo (Autoempleado)" },
+                      { value: "Pequeño (2-5 personas)", label: "Pequeño (2-5 personas)" },
+                      { value: "Mediano (6-15 personas)", label: "Mediano (6-15 personas)" },
+                      { value: "Estructurado (+15 personas)", label: "Estructurado (+15 personas)" }
+                    ]}
+                  />
                   <p className="text-[10px] text-slate-400 leading-relaxed italic">
                     * Permite adaptar la carga operativa sugerida para que los protocolos de venta y CRM no desborden la capacidad de su equipo real.
                   </p>
@@ -524,16 +525,16 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                     Plazo Requerido Plan
                   </label>
-                  <select
+                  <CustomSelect
                     name="plazoMeta"
                     value={formData.plazoMeta}
-                    onChange={onChange}
-                    className="w-full text-xs bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 px-3 text-slate-900 outline-none transition"
-                  >
-                    <option value="3 meses">3 meses (Táctico / Corto Plazo)</option>
-                    <option value="6 meses">6 meses (Alineación Comercial)</option>
-                    <option value="12 meses">12 meses (Escalado de Operaciones)</option>
-                  </select>
+                    onChange={onChange as any}
+                    options={[
+                      { value: "3 meses", label: "3 meses (Táctico / Corto Plazo)" },
+                      { value: "6 meses", label: "6 meses (Alineación Comercial)" },
+                      { value: "12 meses", label: "12 meses (Escalado de Operaciones)" }
+                    ]}
+                  />
                   <p className="text-[10px] text-slate-400 leading-relaxed italic">
                     * Define el ritmo del cronograma de metas SMART mensuales y el plan de acción táctico.
                   </p>

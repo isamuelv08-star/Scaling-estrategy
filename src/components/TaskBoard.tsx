@@ -18,6 +18,7 @@ import {
   ListFilter
 } from "lucide-react";
 import { FormData } from "../utils/prompts";
+import { CustomSelect } from "./CustomSelect";
 
 interface Task {
   id: string;
@@ -512,34 +513,36 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ formData, strategyType }) 
 
       {/* Control panel and filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Phase Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-xl px-2.5 py-1.5">
-            <ListFilter className="w-3.5 h-3.5 text-slate-400" />
-            <select
+          <div className="w-48">
+            <CustomSelect
+              name="filterPhase"
               value={filterPhase}
               onChange={(e) => setFilterPhase(e.target.value)}
-              className="text-[11px] bg-transparent outline-none text-slate-700 font-medium cursor-pointer"
-            >
-              <option value="Todas">Todas las Fases</option>
-              <option value="Preparación (Día 1-7)">Preparación (Día 1-7)</option>
-              <option value="Lanzamiento (Semana 2-4)">Lanzamiento (Semana 2-4)</option>
-              <option value="Optimización (Mes 2)">Optimización (Mes 2)</option>
-            </select>
+              icon={<ListFilter className="w-3.5 h-3.5 text-slate-400" />}
+              options={[
+                { value: "Todas", label: "Todas las Fases" },
+                { value: "Preparación (Día 1-7)", label: "Preparación (Día 1-7)" },
+                { value: "Lanzamiento (Semana 2-4)", label: "Lanzamiento (Semana 2-4)" },
+                { value: "Optimización (Mes 2)", label: "Optimización (Mes 2)" }
+              ]}
+            />
           </div>
 
           {/* Priority Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-xl px-2.5 py-1.5">
-            <select
+          <div className="w-48">
+            <CustomSelect
+              name="filterPriority"
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
-              className="text-[11px] bg-transparent outline-none text-slate-700 font-medium cursor-pointer"
-            >
-              <option value="Todas">Todas las Prioridades</option>
-              <option value="Alta">Prioridad Alta</option>
-              <option value="Media">Prioridad Media</option>
-              <option value="Baja">Prioridad Baja</option>
-            </select>
+              options={[
+                { value: "Todas", label: "Todas las Prioridades" },
+                { value: "Alta", label: "Prioridad Alta" },
+                { value: "Media", label: "Prioridad Media" },
+                { value: "Baja", label: "Prioridad Baja" }
+              ]}
+            />
           </div>
         </div>
 
@@ -582,29 +585,31 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ formData, strategyType }) 
             </div>
             <div className="space-y-1">
               <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Fase de la Estrategia *</label>
-              <select
+              <CustomSelect
+                name="newTaskPhase"
                 value={newTaskPhase}
                 onChange={(e) => setNewTaskPhase(e.target.value as Task["phase"])}
-                className="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:border-indigo-500 outline-none cursor-pointer"
-              >
-                <option value="Preparación (Día 1-7)">Preparación (Día 1-7)</option>
-                <option value="Lanzamiento (Semana 2-4)">Lanzamiento (Semana 2-4)</option>
-                <option value="Optimización (Mes 2)">Optimización (Mes 2)</option>
-              </select>
+                options={[
+                  { value: "Preparación (Día 1-7)", label: "Preparación (Día 1-7)" },
+                  { value: "Lanzamiento (Semana 2-4)", label: "Lanzamiento (Semana 2-4)" },
+                  { value: "Optimización (Mes 2)", label: "Optimización (Mes 2)" }
+                ]}
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1">
               <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Nivel de Prioridad *</label>
-              <select
+              <CustomSelect
+                name="newTaskPriority"
                 value={newTaskPriority}
                 onChange={(e) => setNewTaskPriority(e.target.value as Task["priority"])}
-                className="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:border-indigo-500 outline-none cursor-pointer"
-              >
-                <option value="Alta">Prioridad Alta</option>
-                <option value="Media">Prioridad Media</option>
-                <option value="Baja">Prioridad Baja</option>
-              </select>
+                options={[
+                  { value: "Alta", label: "Prioridad Alta" },
+                  { value: "Media", label: "Prioridad Media" },
+                  { value: "Baja", label: "Prioridad Baja" }
+                ]}
+              />
             </div>
             <div className="md:col-span-2 space-y-1">
               <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Descripción o Detalles de Acción</label>

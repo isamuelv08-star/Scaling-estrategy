@@ -41,7 +41,8 @@ import {
   Terminal,
   Edit,
   Palette,
-  Trash2
+  Trash2,
+  GripVertical
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
@@ -310,6 +311,50 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [tempSupabaseUrl, setTempSupabaseUrl] = useState<string>("");
   const [tempSupabaseAnonKey, setTempSupabaseAnonKey] = useState<string>("");
+
+  // Resizable Dual Workspace Panels State
+  const [leftPanelWidth, setLeftPanelWidth] = useState<number>(40); // Percentage width for left panel (between 25% and 65%)
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+
+  const startResizing = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMove = (clientX: number) => {
+      if (!isResizing || !splitContainerRef.current) return;
+      const rect = splitContainerRef.current.getBoundingClientRect();
+      const newWidth = ((clientX - rect.left) / rect.width) * 100;
+      if (newWidth >= 25 && newWidth <= 65) {
+        setLeftPanelWidth(newWidth);
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX);
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) handleMove(e.touches[0].clientX);
+    };
+
+    const stopResizing = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("touchmove", handleTouchMove);
+      window.addEventListener("mouseup", stopResizing);
+      window.addEventListener("touchend", stopResizing);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("mouseup", stopResizing);
+      window.removeEventListener("touchend", stopResizing);
+    };
+  }, [isResizing]);
 
   useEffect(() => {
     if (isSettingsOpen) {
@@ -1515,10 +1560,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* DUAL WORKSPACE LAYOUT PANELS */}
-            <main className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* PANEL 2: FORMULARIO Y CONTROLES */}
-              <div className="lg:col-span-5 lg:sticky lg:top-6 max-h-[calc(100vh-40px)] overflow-y-auto space-y-6 pr-1">
+            {/* DUAL WORKSPACE LAYOUT PANELS (RESIZABLE) */}
+            <main ref={splitContainerRef} className="max-w-[1700px] mx-auto flex flex-col lg:flex-row items-stretch gap-2 lg:gap-3 relative">
+              {/* PANEL 2: FORMULARIO Y CONTROLES (IZQUIERDA) */}
+              <div 
+                style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${leftPanelWidth}%` : '100%' }}
+                className="w-full lg:shrink-0 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar p-1 space-y-6"
+              >
               {generationStatus === "idle" && (
                 <OnboardingWizard
                   formData={formData}
@@ -1581,20 +1629,30 @@ export default function App() {
               )}
             </div>
 
-            {/* RIGHT PANEL: DYNAMIC STRATEGY CANVAS SHEET */}
-            <div className="lg:col-span-7 lg:sticky lg:top-6 max-h-[calc(100vh-40px)] overflow-y-auto text-left relative space-y-4 scroll-smooth pr-1">
-              {generationStatus === "idle" && (
-                <div className="bg-amber-50/70 border border-amber-200/50 rounded-2xl p-4 flex items-center gap-3 text-amber-800 animate-fade-in print:hidden">
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0 animate-pulse" />
-                  <p className="text-[11px] font-medium leading-normal">
-                    <b>Borrador en tiempo real:</b> Complete el onboarding de la izquierda y observe cómo se actualizan dinámicamente el perfil corporativo y las metas en esta hoja estratégica.
-                  </p>
-                </div>
-              )}
+            {/* RESIZABLE DIVIDER HANDLE (DESKTOP ONLY) */}
+            <div
+              onMouseDown={startResizing}
+              onTouchStart={startResizing}
+              className={`hidden lg:flex items-center justify-center w-3 hover:w-4 -mx-1 z-30 cursor-col-resize select-none group transition-all shrink-0 self-stretch ${
+                isResizing ? "w-4" : ""
+              }`}
+              title="Arrastrar para ajustar ancho de paneles"
+            >
+              <div className={`h-24 w-1.5 rounded-full transition-all flex items-center justify-center ${
+                isResizing ? "bg-blue-600 ring-4 ring-blue-500/20 h-32" : "bg-slate-300 group-hover:bg-blue-500 group-hover:h-28"
+              }`}>
+                <GripVertical className={`w-3 h-3 transition-opacity ${isResizing ? "text-white opacity-100" : "text-slate-500 opacity-0 group-hover:opacity-100"}`} />
+              </div>
+            </div>
 
+            {/* RIGHT PANEL: DYNAMIC STRATEGY CANVAS SHEET */}
+            <div 
+              style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${100 - leftPanelWidth}%` : '100%' }}
+              className="w-full text-left relative space-y-4 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar p-1 scroll-smooth"
+            >
               {/* Tab Selector when finished - STICKY FIXED HEADER WITHOUT UGLY SHADOWS */}
               {generationStatus === "finished" && (
-                <div className="sticky top-0 z-20 bg-slate-50 pt-2 pb-3 print:hidden animate-fade-in">
+                <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md pt-2 pb-3 print:hidden animate-fade-in">
                   <div className="flex flex-wrap md:flex-nowrap bg-slate-200/60 p-1.5 rounded-2xl gap-1 border border-slate-200/80 shadow-xs">
                     <button
                       onClick={() => setActiveTab("strategy")}
@@ -1650,7 +1708,7 @@ export default function App() {
                   {/* Document Sheet Layout */}
                   <article
                     id="printed-document-canvas"
-                    className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
+                    className="bg-white text-slate-800 rounded-3xl shadow-xs border border-slate-200/80 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
                   >
                     {/* Letterhead header block */}
                     <div className="border-b border-slate-200/80 pb-6 flex flex-wrap items-start justify-between gap-6 print:border-b print:border-zinc-300">
@@ -1938,8 +1996,7 @@ export default function App() {
           </main>
 
           {/* Footer info line inside workspace */}
-          <footer className="max-w-[1550px] mx-auto px-4 py-8 md:px-8 border-t border-slate-100 text-center text-[10px] text-slate-400 font-mono flex items-center justify-between">
-            <span>PLATFORM: SUPABASE</span>
+          <footer className="max-w-[1550px] mx-auto px-4 py-6 md:px-8 border-t border-slate-100 text-center text-[10px] text-slate-400 font-mono flex items-center justify-center">
             <span>© SCALING STRATEGY IA. TODOS LOS DERECHOS RESERVADOS.</span>
           </footer>
         </div>
