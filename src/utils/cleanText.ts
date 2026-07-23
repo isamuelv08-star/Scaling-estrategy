@@ -9,13 +9,34 @@ interface SectionConfig {
 }
 
 const SECTIONS_METADATA: SectionConfig[] = [
+  // Completa
   { id: "diagnostico", name: "Auditoría de Modelo de Negocio & Viabilidad" },
   { id: "comparativa", name: "Análisis Competitivo & Posicionamiento" },
   { id: "objetivos", name: "Objetivos de Crecimiento & Metas Tácticas" },
   { id: "plan", name: "Plan de Distribución & Asignación Presupuestaria" },
   { id: "campanas", name: "Estrategias de Adquisición Digital" },
   { id: "calendario", name: "Calendario Editorial de Contenido Táctico" },
-  { id: "sistema", name: "Protocolo de Conversión, CRM & KPIs Clave" }
+  { id: "sistema", name: "Protocolo de Conversión, CRM & KPIs Clave" },
+  // Contenido
+  { id: "diagnostico_org", name: "Diagnóstico Inbound y Pilares de Mensaje" },
+  { id: "matriz_org", name: "Matriz de Distribución de Contenido" },
+  { id: "calendario_org", name: "Parrilla de Contenido Crítica" },
+  // Pago
+  { id: "diagnostico_pago", name: "Diagnóstico de Presupuesto y Canales de Pauta" },
+  { id: "estructura_campanas", name: "Estructura de Campañas de Alto Impacto" },
+  { id: "optimizacion_pago", name: "Matriz de Métricas y Escalado de Pauta" },
+  // Escalabilidad
+  { id: "auditoria_finance", name: "Auditoría de Unit Economics y Escalabilidad" },
+  { id: "metas_smart", name: "Objetivos SMART y Metas de Crecimiento" },
+  { id: "plan_fases", name: "Plan de Acción Operativo por Fases" },
+  // Comercial
+  { id: "diagnostico_comercial", name: "Diagnóstico de Fricción Comercial y CRM" },
+  { id: "protocolo_ventas", name: "Protocolo de Ventas CRM y Velocidad de Respuesta" },
+  { id: "guion_ventas", name: "Guión Táctico y Manejo de Objeciones" },
+  // Copywriting
+  { id: "diagnostico_copy", name: "Diagnóstico Psicológico de Dolor y Deseo" },
+  { id: "emails_pas", name: "Secuencia de Emails de Conversión (Framework PAS)" },
+  { id: "wireframe_landing", name: "Estructura y Copys para Landing Page" }
 ];
 
 /**
@@ -287,7 +308,24 @@ export function generatePremiumHTMLReport(
 
   // Build HTML document
   let sectionsHTML = "";
+  const renderList: SectionConfig[] = [];
+
   SECTIONS_METADATA.forEach(sec => {
+    if (sections[sec.id]) {
+      renderList.push(sec);
+    }
+  });
+
+  Object.keys(sections).forEach(key => {
+    if (sections[key] && !renderList.some(item => item.id === key)) {
+      renderList.push({
+        id: key,
+        name: key.replace(/_/g, " ").toUpperCase()
+      });
+    }
+  });
+
+  renderList.forEach(sec => {
     const content = sections[sec.id];
     if (content) {
       // Strip initial title from content if it repeats section name

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Sparkles,
   TrendingUp,
@@ -895,14 +895,15 @@ export default function App() {
   // Helper to save automatically right after generation finishes or is updated
   const saveStrategyToDBDirect = async (currentFormData: any, currentSections: any, currentResumen: string) => {
     const client = getSupabaseClient();
+    const fullFormData = { ...currentFormData, strategyType: selectedStrategyType };
     try {
       if (user && client) {
         const { data, error } = await client
           .from("estrategias")
           .insert({
-            nombre_negocio: currentFormData.nombreNegocio,
-            rubro: currentFormData.rubro,
-            form_data: currentFormData,
+            nombre_negocio: fullFormData.nombreNegocio,
+            rubro: fullFormData.rubro,
+            form_data: fullFormData,
             secciones: currentSections,
             resumen: currentResumen,
             user_id: user.id
@@ -920,9 +921,9 @@ export default function App() {
       } else {
         const data = await invokeEdgeFunction({
           action: "save",
-          nombreNegocio: currentFormData.nombreNegocio,
-          rubro: currentFormData.rubro,
-          formData: currentFormData,
+          nombreNegocio: fullFormData.nombreNegocio,
+          rubro: fullFormData.rubro,
+          formData: fullFormData,
           secciones: currentSections,
           resumen: currentResumen
         });
@@ -951,15 +952,16 @@ export default function App() {
     }
 
     setIsSaving(true);
+    const fullFormData = { ...formData, strategyType: selectedStrategyType };
     try {
       const client = getSupabaseClient();
       if (user && client) {
         const { data, error } = await client
           .from("estrategias")
           .insert({
-            nombre_negocio: formData.nombreNegocio,
-            rubro: formData.rubro,
-            form_data: formData,
+            nombre_negocio: fullFormData.nombreNegocio,
+            rubro: fullFormData.rubro,
+            form_data: fullFormData,
             secciones: sections,
             resumen: resumen,
             user_id: user.id
@@ -977,9 +979,9 @@ export default function App() {
       } else {
         const data = await invokeEdgeFunction({
           action: "save",
-          nombreNegocio: formData.nombreNegocio,
-          rubro: formData.rubro,
-          formData: formData,
+          nombreNegocio: fullFormData.nombreNegocio,
+          rubro: fullFormData.rubro,
+          formData: fullFormData,
           secciones: sections,
           resumen: resumen
         });
@@ -1060,6 +1062,11 @@ export default function App() {
   const setStrategyStates = (est: any) => {
     if (est.form_data) {
       setFormData(est.form_data);
+      if (est.form_data.strategyType) {
+        setSelectedStrategyType(est.form_data.strategyType);
+      } else if (est.strategy_type) {
+        setSelectedStrategyType(est.strategy_type);
+      }
       setWizardStep(4);
     } else {
       setFormData({
@@ -1100,13 +1107,52 @@ export default function App() {
     triggerToast(`Cargada estrategia de ${est.nombre_negocio}`, "info");
   };
 
+  // Dynamically compute list of sections to render & export based on strategy type & actual sections present
+  const renderableSections = useMemo(() => {
+    const activeFromType = getSectionsForStrategy(selectedStrategyType, formData);
+    const existingKeys = Object.keys(sections);
+    
+    if (existingKeys.length === 0) {
+      return activeFromType;
+    }
+
+    const activeIds = new Set(activeFromType.map(s => s.id));
+    const extraKeys = existingKeys.filter(k => !activeIds.has(k) && sections[k]);
+
+    if (extraKeys.length === 0) {
+      return activeFromType;
+    }
+
+    const allKnownMap = new Map<string, any>();
+    ["completa", "contenido", "pago", "escalabilidad", "comercial", "copywriting"].forEach(stId => {
+      getSectionsForStrategy(stId, formData).forEach(sec => {
+        allKnownMap.set(sec.id, sec);
+      });
+    });
+
+    const list = [...activeFromType.filter(s => sections[s.id])];
+    extraKeys.forEach(k => {
+      if (allKnownMap.has(k)) {
+        list.push(allKnownMap.get(k)!);
+      } else {
+        list.push({
+          id: k,
+          name: k.replace(/_/g, " ").toUpperCase(),
+          prompt: () => ""
+        });
+      }
+    });
+
+    return list.length > 0 ? list : activeFromType;
+  }, [selectedStrategyType, formData, sections]);
+
   // Clipboard copies strategy markdown
   const copyToClipboard = () => {
     let fullText = `# ESTRATEGIA DE ESCALADO: ${formData.nombreNegocio.toUpperCase()}\n`;
     fullText += `Modelo de Negocio: ${formData.tipoModelo} | Rubro: ${formData.rubro} | Plazo: ${formData.plazoMeta}\n\n`;
     fullText += `## RESUMEN EJECUTIVO\n${resumen}\n\n`;
 
-    SECTIONS_CONFIG.forEach(sec => {
+    renderableSections.forEach(sec => {
       if (sections[sec.id]) {
         fullText += `${sections[sec.id]}\n\n`;
       }
@@ -1123,7 +1169,7 @@ export default function App() {
     rawText += `Modelo de Negocio: ${formData.tipoModelo} | Rubro: ${formData.rubro} | Plazo: ${formData.plazoMeta}\n\n`;
     rawText += `## RESUMEN EJECUTIVO\n${resumen}\n\n`;
 
-    SECTIONS_CONFIG.forEach(sec => {
+    renderableSections.forEach(sec => {
       if (sections[sec.id]) {
         rawText += `${sections[sec.id]}\n\n`;
       }
@@ -1142,7 +1188,7 @@ export default function App() {
     fullText += `Modelo de Negocio: ${formData.tipoModelo} | Rubro: ${formData.rubro} | Plazo: ${formData.plazoMeta}\n\n`;
     fullText += `## RESUMEN EJECUTIVO\n${resumen}\n\n`;
 
-    SECTIONS_CONFIG.forEach(sec => {
+    renderableSections.forEach(sec => {
       if (sections[sec.id]) {
         fullText += `${sections[sec.id]}\n\n`;
       }
@@ -1170,7 +1216,7 @@ export default function App() {
     rawText += `------------------\n`;
     rawText += `"${resumen}"\n\n`;
 
-    SECTIONS_CONFIG.forEach(sec => {
+    renderableSections.forEach(sec => {
       if (sections[sec.id]) {
         rawText += `## ${sec.name.toUpperCase()}\n`;
         rawText += `${sections[sec.id]}\n\n`;
@@ -1472,7 +1518,7 @@ export default function App() {
             {/* DUAL WORKSPACE LAYOUT PANELS */}
             <main className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* PANEL 2: FORMULARIO Y CONTROLES */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="lg:col-span-5 lg:sticky lg:top-6 max-h-[calc(100vh-40px)] overflow-y-auto space-y-6 pr-1">
               {generationStatus === "idle" && (
                 <OnboardingWizard
                   formData={formData}
@@ -1548,8 +1594,8 @@ export default function App() {
 
               {/* Tab Selector when finished - STICKY FIXED HEADER WITHOUT UGLY SHADOWS */}
               {generationStatus === "finished" && (
-                <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md pb-3 pt-0 print:hidden animate-fade-in">
-                  <div className="flex flex-wrap md:flex-nowrap bg-slate-200/60 p-1.5 rounded-2xl gap-1 border border-slate-200/80">
+                <div className="sticky top-0 z-20 bg-slate-50 pt-2 pb-3 print:hidden animate-fade-in">
+                  <div className="flex flex-wrap md:flex-nowrap bg-slate-200/60 p-1.5 rounded-2xl gap-1 border border-slate-200/80 shadow-xs">
                     <button
                       onClick={() => setActiveTab("strategy")}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
@@ -1713,7 +1759,7 @@ export default function App() {
 
                     {/* Rendering Content Sections */}
                     <div className="space-y-10">
-                      {getSectionsForStrategy(selectedStrategyType, formData).map((sec, index) => {
+                      {renderableSections.map((sec, index) => {
                         const completedContent = sections[sec.id];
                         const isCurrent = currentSectionIndex === index;
 
