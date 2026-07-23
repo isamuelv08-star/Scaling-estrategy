@@ -1,5 +1,11 @@
 // Prompts for Scaling Strategy Generator
 
+export interface RedesImagen {
+  name: string;
+  base64: string;
+  mediaType: string;
+}
+
 export interface FormData {
   nombreNegocio: string;
   rubro: string;
@@ -9,6 +15,7 @@ export interface FormData {
   ubicacion: string;
   publicoObjetivo: string;
   sitioWeb?: string;
+  redesImagenes?: RedesImagen[];
   facturacion: string;
   ticketPromedio: string;
   margenUtilidad: string; // Profit margin percentage (e.g. 30%)
@@ -102,9 +109,14 @@ ${previousContent}
 Realiza una búsqueda real en internet de los competidores o de la industria en la zona/mercado objetivo.
 Genera la sección utilizando markdown. Si no encuentras presencia digital real de competidores específicos en la zona, analiza el estándar competitivo de la industria y descríbelo con rigor (no inventes URLs ni datos ficticios).
 
+Si se te adjuntaron una o más imágenes de capturas de redes sociales del propio negocio, analízalas directamente: describe qué comunican (bio, tipo de contenido, frecuencia aparente, estética, seguidores si son visibles) y úsalas como "### Nuestra presencia actual" antes de listar los competidores encontrados. NO inventes datos que no se vean en la imagen — si algo no es visible o legible, dilo. Si no se adjuntó ninguna imagen, omite ese sub-bloque por completo.
+
 Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
 ## 2. Comparativa de Mercado
+
+### Nuestra presencia actual
+(Solo si se adjuntaron capturas de redes sociales del negocio: describe qué comunican [bio, tipo de contenido, frecuencia aparente, estética, seguidores si son visibles]. NO inventes datos que no se vean en la imagen — si algo no es visible o legible, dilo. Si no se adjuntó ninguna imagen, OMITE esta sub-sección por completo).
 
 ### 2.1. Análisis del Entorno Competitivo Real
 (Lista 3 competidores reales identificados en la búsqueda con sus nombres comerciales y presencia en internet. Describe brevemente el panorama general).

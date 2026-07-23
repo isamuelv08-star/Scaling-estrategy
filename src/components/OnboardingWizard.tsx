@@ -22,6 +22,8 @@ import { CustomSelect } from "./CustomSelect";
 interface OnboardingWizardProps {
   formData: FormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  handleRedesUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  removeRedesImagen: (index: number) => void;
   wizardStep: number;
   setWizardStep: React.Dispatch<React.SetStateAction<number>>;
   onGenerate: () => void;
@@ -32,6 +34,8 @@ interface OnboardingWizardProps {
 export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   formData,
   onChange,
+  handleRedesUpload,
+  removeRedesImagen,
   wizardStep,
   setWizardStep,
   onGenerate,
@@ -187,22 +191,42 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
                 <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-2">
                   <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                    Sitio Web (Opcional)
+                    Capturas de tus redes sociales (opcional, hasta 3)
                   </label>
-                  <div className="relative">
-                    <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      name="sitioWeb"
-                      value={formData.sitioWeb}
-                      onChange={onChange}
-                      placeholder="Ej. www.marca.com"
-                      className="w-full text-xs bg-white border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 outline-none transition font-mono"
-                    />
-                  </div>
                   <p className="text-[10px] text-slate-400 leading-relaxed italic">
-                    * Permite evaluar la madurez de su embudo digital y proponer mejoras directas en la conversión de su web.
+                    Sube capturas de tu Instagram, TikTok o Facebook — bio, publicaciones recientes, lo que muestre cómo luce tu presencia hoy. Si no tienes redes activas, déjalo vacío.
                   </p>
+                  <div className="flex gap-2 flex-wrap pt-1">
+                    {(formData.redesImagenes || []).map((img, i) => (
+                      <div key={i} className="relative">
+                        <img
+                          src={`data:${img.mediaType};base64,${img.base64}`}
+                          alt={img.name}
+                          className="w-16 h-16 object-cover rounded-xl border border-slate-200 shadow-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeRedesImagen(i)}
+                          className="absolute -top-1.5 -right-1.5 bg-slate-900 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center cursor-pointer shadow-sm hover:bg-slate-800 transition"
+                          title="Eliminar captura"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {(formData.redesImagenes || []).length < 3 && (
+                      <label className="w-16 h-16 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center cursor-pointer text-slate-400 text-xl hover:border-slate-400 hover:bg-slate-100/50 transition">
+                        +
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleRedesUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

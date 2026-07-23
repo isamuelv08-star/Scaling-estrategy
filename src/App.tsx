@@ -664,6 +664,47 @@ export default function App() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleRedesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentImages = formData.redesImagenes || [];
+    const files = Array.from(e.target.files || []).slice(0, 3 - currentImages.length);
+    files.forEach((file) => {
+      if (!file.type.startsWith("image/")) return;
+      if (file.size > 5 * 1024 * 1024) {
+        triggerToast(`${file.name} pesa más de 5MB, súbela más liviana.`, "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        setFormData((prev) => ({
+          ...prev,
+          redesImagenes: [...(prev.redesImagenes || []), { name: file.name, base64, mediaType: file.type }].slice(0, 3)
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const removeRedesImagen = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      redesImagenes: (prev.redesImagenes || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const construirMensajeComparativa = (promptTexto: string, imagenes: { name: string; base64: string; mediaType: string }[] = []) => {
+    if (!imagenes || imagenes.length === 0) {
+      return promptTexto;
+    }
+    const bloques: any[] = imagenes.map((img) => ({
+      type: "image",
+      source: { type: "base64", media_type: img.mediaType, data: img.base64 },
+    }));
+    bloques.push({ type: "text", text: promptTexto });
+    return bloques;
+  };
+
   // Validation rules per wizard step
   const isStepValid = (step: number) => {
     if (step === 1) {
@@ -882,12 +923,17 @@ export default function App() {
           .join("\n\n");
 
         const promptText = currentSection.prompt(formData, previousContextText);
+        const promptTextoCompleto = `BRIEFING LIMPIO DEL NEGOCIO:\n${briefing}\n\n${promptText}`;
+
+        const userMessageContent = currentSection.id === "comparativa"
+          ? construirMensajeComparativa(promptTextoCompleto, formData.redesImagenes || [])
+          : promptTextoCompleto;
 
         const payload: any = {
           action: "generate",
           model: "claude-sonnet-4-6",
           system: "Eres el Consultor Principal de Scaling Strategy, una firma de consultoría de crecimiento para PyMEs. Responde con nivel estratégico real, denso en valor práctico, pero en lenguaje CLARO que cualquier dueño de negocio sin formación en marketing pueda entender sin buscar nada en Google. Si usas una sigla o término técnico (CAC, LTV, ROAS, TOFU, etc.), defínela la primera vez que aparece, entre paréntesis, en una frase simple. Evita jerga que no se explica a sí misma. REGLA ANTI-GENÉRICO: Cada afirmación, recomendación o cifra que escribas debe estar amarrada a un dato específico que el usuario proporcionó (nombre del negocio, rubro, ciudad, facturación, competidores, presupuesto, etc.) — nunca escribas una recomendación que serviría igual para cualquier negocio del mismo rubro en cualquier ciudad. Si una idea no usa ningún dato específico de ESTE negocio, no la escribas: profundiza en la que sí lo hace. Prohibido usar frases de relleno tipo 'es importante considerar', 'en el mundo actual', 'las empresas exitosas suelen'. Ve directo a la recomendación concreta.",
-          messages: [{ role: "user", content: `BRIEFING LIMPIO DEL NEGOCIO:\n${briefing}\n\n${promptText}` }],
+          messages: [{ role: "user", content: userMessageContent }],
           max_tokens: 4000
         };
 
@@ -1616,6 +1662,8 @@ export default function App() {
                 <OnboardingWizard
                   formData={formData}
                   onChange={handleInputChange}
+                  handleRedesUpload={handleRedesUpload}
+                  removeRedesImagen={removeRedesImagen}
                   wizardStep={wizardStep}
                   setWizardStep={setWizardStep}
                   onGenerate={() => setGenerationStatus("selecting")}
