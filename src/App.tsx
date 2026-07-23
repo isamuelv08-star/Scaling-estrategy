@@ -40,7 +40,8 @@ import {
   Cpu,
   Terminal,
   Edit,
-  Palette
+  Palette,
+  Trash2
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
@@ -55,6 +56,7 @@ import { ROICalculator } from "./components/ROICalculator.tsx";
 import { HookGenerator } from "./components/HookGenerator.tsx";
 import { StrategySelector } from "./components/StrategySelector.tsx";
 import { TaskBoard } from "./components/TaskBoard.tsx";
+import { ConfiguracionModal } from "./components/ConfiguracionModal.tsx";
 import { ListTodo } from "lucide-react";
 
 const LOADING_STATUSES = [
@@ -277,6 +279,8 @@ export default function App() {
   const [consultorNombre, setConsultorNombre] = useState<string>("SCALING STRATEGY");
   const [accentColor, setAccentColor] = useState<string>("blue");
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
   
   // User Auth States
   const [user, setUser] = useState<any>(null);
@@ -1012,6 +1016,27 @@ export default function App() {
     }
   };
 
+  const deleteHistoryItem = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!confirm("¿Está seguro de eliminar esta estrategia de su historial?")) return;
+
+    try {
+      const client = getSupabaseClient();
+      if (user && client) {
+        const { error } = await client.from("estrategias").delete().eq("id", id);
+        if (error) throw error;
+      }
+      setHistoryList((prev) => prev.filter((item) => item.id !== id));
+      if (selectedHistoryId === id) {
+        setSelectedHistoryId(null);
+      }
+      triggerToast("Estrategia eliminada con éxito", "info");
+    } catch (err: any) {
+      console.error("Error deleting history item:", err);
+      triggerToast(err?.message || "No se pudo eliminar la estrategia", "error");
+    }
+  };
+
   const setStrategyStates = (est: any) => {
     if (est.form_data) {
       setFormData(est.form_data);
@@ -1281,8 +1306,8 @@ export default function App() {
                       <span className="font-display font-black text-xs text-slate-900 uppercase tracking-wider block leading-none">
                         Scaling Strategy
                       </span>
-                      <span className="text-[8px] font-mono tracking-widest text-slate-400 font-bold block mt-0.5">
-                        SIDEBAR NAV
+                      <span className="text-[9px] font-medium text-slate-500 block mt-1 leading-tight">
+                        Crea las mejores estrategias
                       </span>
                     </div>
                   </div>
@@ -1330,18 +1355,16 @@ export default function App() {
                   )}
                 </button>
 
-                {user && (
-                  <button
-                    onClick={() => setIsBrandingOpen(true)}
-                    className={`w-full flex items-center gap-3 py-3 px-3.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      isSidebarCollapsed ? "justify-center" : ""
-                    } text-amber-800 bg-amber-50/60 hover:bg-amber-100/80 border border-amber-200/50`}
-                    title="Configurar Nombre y Diseño de Marca"
-                  >
-                    <Palette className="w-4 h-4 shrink-0 text-amber-600" />
-                    {!isSidebarCollapsed && <span>Marca</span>}
-                  </button>
-                )}
+                <button
+                  onClick={() => setIsConfigModalOpen(true)}
+                  className={`w-full flex items-center gap-3 py-3 px-3.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isSidebarCollapsed ? "justify-center" : ""
+                  } text-slate-700 bg-slate-100/80 hover:bg-slate-200/80 border border-slate-200/50`}
+                  title="Configurar Cuenta, Accesos e Idioma"
+                >
+                  <Settings className="w-4 h-4 shrink-0 text-blue-600" />
+                  {!isSidebarCollapsed && <span>Configuración</span>}
+                </button>
               </div>
             </div>
 
@@ -1360,9 +1383,14 @@ export default function App() {
               {user ? (
                 <button
                   onClick={async () => {
-                    const client = getSupabaseClient();
-                    if (client) {
-                      await client.auth.signOut();
+                    try {
+                      const client = getSupabaseClient();
+                      if (client) {
+                        await client.auth.signOut();
+                      }
+                    } catch (err) {
+                      console.error("Logout error:", err);
+                    } finally {
                       setUser(null);
                       setIsWorkspaceActive(false);
                       triggerToast("Sesión cerrada correctamente", "info");
@@ -1394,30 +1422,27 @@ export default function App() {
           {/* MAIN CANVAS CONTENT AREA */}
           <div className="flex-1 min-w-0 p-4 md:p-8 space-y-6 overflow-y-auto">
             
-            {/* CANVAS HEADER BRANDING (En el mismo lienzo del fondo, más grande) */}
+            {/* CANVAS HEADER BRANDING */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6 print:hidden">
               <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setIsWorkspaceActive(false)}
-                  className="bg-white hover:bg-slate-100 border border-slate-200 p-2.5 rounded-2xl transition text-slate-600 cursor-pointer shadow-sm"
-                  title="Volver al inicio"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-600/15 text-white">
+                <div className="bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 p-3.5 rounded-2xl shadow-lg shadow-blue-600/20 text-white shrink-0">
                   <TrendingUp className="w-7 h-7" />
                 </div>
-                <div className="text-left">
-                  <div className="flex items-center gap-3">
-                    <h1 className="font-display text-2xl md:text-3.5xl font-black tracking-tight text-slate-900 leading-none">
-                      Scaling Strategy
+                <div className="text-left space-y-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="font-display text-2xl md:text-3.5xl font-black tracking-tight leading-none text-slate-900">
+                      <span>¡Bienvenido, </span>
+                      <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                        {user?.user_metadata?.display_name || consultorNombre || "Consultor"}
+                      </span>
+                      <span>!</span>
                     </h1>
-                    <span className="bg-blue-50 text-blue-700 text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-blue-100">
+                    <span className="bg-blue-50 text-blue-700 text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-blue-100 shrink-0">
                       Console
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium mt-1">
-                    Consola de Inteligencia Estratégica y Modelado de Escalabilidad
+                  <p className="text-xs md:text-sm font-semibold text-slate-600">
+                    Crea las mejores estrategias para tu negocio.
                   </p>
                 </div>
               </div>
@@ -1919,84 +1944,180 @@ export default function App() {
       </div>
     )}
 
-      {/* FLYOUT HISTORY SIDEBAR DRAWER (Right sliding drawer) */}
+      {/* FULL SCREEN HISTORY OVERLAY / MODAL */}
       {isHistoryOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end animate-fade-in">
-          {/* Backdrop shadow overlay */}
-          <div
-            onClick={() => setIsHistoryOpen(false)}
-            className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
-          />
-
-          {/* Drawer Canvas: Fully elegant white */}
-          <div className="relative w-full max-w-md bg-white h-full shadow-2xl border-l border-slate-200/80 flex flex-col p-6 space-y-6 z-10 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex flex-col p-4 md:p-8 overflow-hidden animate-fade-in text-left">
+          <div className="relative w-full max-w-7xl mx-auto bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col h-full overflow-hidden my-auto animate-fade-in">
             
-            {/* Header */}
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-blue-600" />
-                <h3 className="font-display text-sm font-bold tracking-tight text-slate-900">
-                  Historial de Estrategias
-                </h3>
+            {/* Full-screen History Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 md:px-8 py-5 border-b border-slate-100 bg-slate-50/70 shrink-0">
+              <div className="flex items-center gap-3.5">
+                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-md shadow-blue-600/20">
+                  <History className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-lg md:text-xl font-bold tracking-tight text-slate-900">
+                      Historial Completo de Estrategias
+                    </h2>
+                    <span className="bg-blue-100 text-blue-700 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full">
+                      {historyList.length} REGISTROS
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Explore, cargue, o gestione todas las estrategias generadas y guardadas en la plataforma.
+                  </p>
+                </div>
               </div>
+
+              {/* Search bar & Close button */}
+              <div className="flex items-center gap-3">
+                <div className="relative w-full md:w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    placeholder="Buscar por negocio o sector..."
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition"
+                  />
+                  {historySearchQuery && (
+                    <button
+                      onClick={() => setHistorySearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-2xl transition cursor-pointer shrink-0"
+                  aria-label="Cerrar historial"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid List of Strategies */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50/30">
+              {(() => {
+                const filtered = historyList.filter((item) => {
+                  if (!historySearchQuery.trim()) return true;
+                  const q = historySearchQuery.toLowerCase();
+                  return (
+                    item.nombre_negocio?.toLowerCase().includes(q) ||
+                    item.rubro?.toLowerCase().includes(q)
+                  );
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="h-80 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-200 rounded-3xl bg-white max-w-lg mx-auto my-auto space-y-3">
+                      <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 border border-slate-100">
+                        <History className="w-8 h-8" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">
+                          {historySearchQuery ? "No se encontraron coincidencias" : "Sin estrategias guardadas"}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-light mt-1 max-w-xs">
+                          {historySearchQuery
+                            ? "Intente buscar con otro término de negocio o sector."
+                            : "Cree una nueva estrategia desde la consola y se guardará automáticamente aquí."}
+                        </p>
+                      </div>
+                      {!historySearchQuery && (
+                        <button
+                          onClick={() => {
+                            setIsHistoryOpen(false);
+                            startNewStrategy();
+                          }}
+                          className="mt-2 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer shadow-md shadow-blue-600/10"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          <span>Crear Nueva Estrategia</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {filtered.map((item) => {
+                      const isSelected = selectedHistoryId === item.id;
+                      const dateStr = new Date(item.created_at).toLocaleDateString("es-ES", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      });
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group bg-white rounded-2xl p-5 border transition-all duration-200 flex flex-col justify-between space-y-4 hover:shadow-lg ${
+                            isSelected
+                              ? "border-blue-500 ring-2 ring-blue-500/20 shadow-md"
+                              : "border-slate-200/80 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100/80 shrink-0">
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">
+                                {dateStr}
+                              </span>
+                            </div>
+
+                            <div>
+                              <h3 className="font-display font-bold text-sm text-slate-900 group-hover:text-blue-600 transition leading-snug line-clamp-1">
+                                {item.nombre_negocio}
+                              </h3>
+                              <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">
+                                {item.rubro || "Sector no especificado"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button
+                              onClick={(e) => deleteHistoryItem(item.id, e)}
+                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                              title="Eliminar del historial"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => loadHistoryItem(item.id)}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                            >
+                              <span>Cargar Estrategia</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Full-screen History Footer */}
+            <div className="px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium shrink-0">
+              <span>Mostrando {historyList.length} estrategias guardadas</span>
               <button
                 onClick={() => setIsHistoryOpen(false)}
-                className="text-slate-400 hover:text-slate-900 p-1.5 hover:bg-slate-50 rounded-lg transition"
-                aria-label="Cerrar historial"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                Cerrar
               </button>
-            </div>
-
-            {/* List container: scrollable */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 text-left">
-              {historyList.length === 0 ? (
-                <div className="h-40 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                  <History className="w-7 h-7 text-slate-300 mb-2" />
-                  <p className="text-xs text-slate-400 font-medium">No se encontraron planes guardados</p>
-                  <p className="text-[10px] text-slate-400 font-light mt-0.5">Las estrategias que guarde aparecerán aquí.</p>
-                </div>
-              ) : (
-                historyList.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      loadHistoryItem(item.id);
-                      setIsHistoryOpen(false);
-                    }}
-                    className={`group w-full p-4 rounded-2xl border text-left transition flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-50 hover:border-slate-300 ${
-                      selectedHistoryId === item.id
-                        ? "bg-blue-50/50 border-blue-300 ring-1 ring-blue-300"
-                        : "bg-white border-slate-200/80"
-                    }`}
-                  >
-                    <div className="space-y-1 overflow-hidden flex-1">
-                      <p className="text-xs font-bold text-slate-900 truncate">
-                        {item.nombre_negocio}
-                      </p>
-                      <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                        {item.rubro || "Sin sector definido"}
-                      </p>
-                    </div>
-                    
-                    <div className="text-right shrink-0 flex items-center gap-1">
-                      <span className="text-[9px] font-mono text-slate-400 block mr-1">
-                        {new Date(item.created_at).toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "short"
-                        })}
-                      </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-600" />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-slate-100 pt-4 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-              <span>TOTAL REGISTROS: {historyList.length}</span>
-              <span>SCALING STRATEGY</span>
             </div>
           </div>
         </div>
@@ -2128,6 +2249,17 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Configuracion Modal Component */}
+      <ConfiguracionModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        user={user}
+        supabaseClient={getSupabaseClient()}
+        consultorNombre={consultorNombre}
+        setConsultorNombre={setConsultorNombre}
+        triggerToast={triggerToast}
+      />
 
       {/* Auth Modal Component */}
       <AuthModal
