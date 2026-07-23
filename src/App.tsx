@@ -1536,7 +1536,7 @@ export default function App() {
             </div>
 
             {/* RIGHT PANEL: DYNAMIC STRATEGY CANVAS SHEET */}
-            <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 text-left">
+            <div className="lg:col-span-7 lg:sticky lg:top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 text-left relative space-y-4 scroll-smooth">
               {generationStatus === "idle" && (
                 <div className="bg-amber-50/70 border border-amber-200/50 rounded-2xl p-4 flex items-center gap-3 text-amber-800 animate-fade-in print:hidden">
                   <Sparkles className="w-4 h-4 text-amber-500 shrink-0 animate-pulse" />
@@ -1546,126 +1546,61 @@ export default function App() {
                 </div>
               )}
 
-              {/* Tab Selector when finished */}
+              {/* Tab Selector when finished - STICKY FIXED HEADER */}
               {generationStatus === "finished" && (
-                <div className="flex flex-wrap md:flex-nowrap bg-slate-100 p-1 rounded-2xl gap-1 print:hidden shadow-sm border border-slate-200 animate-fade-in">
-                  <button
-                    onClick={() => setActiveTab("strategy")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
-                      activeTab === "strategy"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span>Plan Estratégico</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("roi")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
-                      activeTab === "roi"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <TrendingUp className="w-4 h-4 text-emerald-600" />
-                    <span>Simulador ROI & LTV</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("hooks")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
-                      activeTab === "hooks"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4 text-yellow-500" />
-                    <span>Ganchos de Venta</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("tasks")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
-                      activeTab === "tasks"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <ListTodo className="w-4 h-4 text-purple-600" />
-                    <span>Plan de Acción</span>
-                  </button>
+                <div className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md pt-1 pb-2 print:hidden animate-fade-in">
+                  <div className="flex flex-wrap md:flex-nowrap bg-slate-200/70 p-1 rounded-2xl gap-1 shadow-sm border border-slate-300/70">
+                    <button
+                      onClick={() => setActiveTab("strategy")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                        activeTab === "strategy"
+                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                      }`}
+                    >
+                      <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>Plan Estratégico</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("roi")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                        activeTab === "roi"
+                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                      }`}
+                    >
+                      <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Simulador ROI & LTV</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("hooks")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                        activeTab === "hooks"
+                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>Ganchos de Venta</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("tasks")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                        activeTab === "tasks"
+                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                      }`}
+                    >
+                      <ListTodo className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Plan de Acción</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* Render either Strategy canvas sheet, ROI calculator, or Copywriting hooks */}
               {(generationStatus !== "finished" || activeTab === "strategy") ? (
                 <>
-                  {/* Premium Brand Customization Widget */}
-                  {generationStatus === "finished" && activeTab === "strategy" && (
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3 print:hidden animate-fade-in shadow-sm text-left">
-                      <button
-                        onClick={() => setIsBrandingOpen(!isBrandingOpen)}
-                        className="w-full flex items-center justify-between text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Palette className="w-4 h-4 text-indigo-500" />
-                          Personalización del Informe de Marca Blanca (Marca Propia)
-                        </span>
-                        <span className="text-[10px] bg-slate-200/70 text-slate-600 px-2.5 py-0.5 rounded-md font-mono">
-                          {isBrandingOpen ? "OCULTAR" : "PERSONALIZAR"}
-                        </span>
-                      </button>
-
-                      {isBrandingOpen && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2.5 border-t border-slate-200/50 animate-fade-in text-left">
-                          <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-700 block">
-                              Nombre del Consultor / Agencia:
-                            </label>
-                            <input
-                              type="text"
-                              value={consultorNombre}
-                              onChange={(e) => setConsultorNombre(e.target.value)}
-                              placeholder="Ej. CONSULTORA ALPHA"
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-700 block">
-                              Color de Acento del Informe:
-                            </label>
-                            <div className="flex flex-wrap gap-1.5">
-                              {Object.entries(COLOR_THEMES).map(([key, t]) => (
-                                <button
-                                  key={key}
-                                  onClick={() => setAccentColor(key)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition cursor-pointer flex items-center gap-1.5 ${
-                                    accentColor === key
-                                      ? "bg-slate-950 text-white border-slate-950"
-                                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                                  }`}
-                                >
-                                  <span className={`w-2.5 h-2.5 rounded-full ${t.bg}`} />
-                                  <span>{t.name}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          {user && (
-                            <div className="md:col-span-2 flex justify-end pt-1">
-                              <button
-                                onClick={() => saveUserProfile(consultorNombre, accentColor)}
-                                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition cursor-pointer"
-                              >
-                                Guardar Configuración en Cuenta
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Document Sheet Layout */}
                   <article
                     id="printed-document-canvas"
