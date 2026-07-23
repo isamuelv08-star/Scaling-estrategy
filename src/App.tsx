@@ -1713,70 +1713,77 @@ export default function App() {
                 </div>
               )}
 
-              {/* Render either Strategy canvas sheet, ROI calculator, or Copywriting hooks */}
-              {(generationStatus !== "finished" || activeTab === "strategy") ? (
-                <article
-                  id="printed-document-canvas"
-                  className="flex-1 min-h-0 bg-white text-slate-800 rounded-3xl shadow-xs border border-slate-200/80 relative overflow-hidden flex flex-col print:h-auto print:overflow-visible print:p-0 print:shadow-none print:rounded-none print:border-none"
-                >
-                  {/* FIXED HEADER: Ultra-Compact Horizontal Letterhead */}
-                  <div className="shrink-0 bg-white border-b border-slate-200/80 px-4 md:px-6 py-2.5 md:py-3 z-10 print:border-b print:border-zinc-300">
-                    <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-                      {/* Left Block: Eyebrow + Title + Inline Chips */}
-                      <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
-                        <span className={`text-[8px] font-mono tracking-[0.2em] ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase shrink-0`}>
-                          PLAN ESTRATÉGICO
-                        </span>
-                        <span className="text-slate-300 text-xs shrink-0">•</span>
-                        <h1 className="font-display text-sm md:text-base font-bold tracking-tight text-slate-900 truncate max-w-[200px] md:max-w-[280px] shrink-0">
-                          {formData.nombreNegocio || "Nueva Estrategia"}
-                        </h1>
+              {/* Main Canvas Article Container wrapped for ALL tabs */}
+              <article
+                id="printed-document-canvas"
+                className="flex-1 min-h-0 bg-white text-slate-800 rounded-3xl shadow-xs border border-slate-200/80 relative overflow-hidden flex flex-col print:h-auto print:overflow-visible print:p-0 print:shadow-none print:rounded-none print:border-none"
+              >
+                {/* FIXED HEADER: Ultra-Compact Horizontal Letterhead */}
+                <div className="shrink-0 bg-white border-b border-slate-200/80 px-4 md:px-6 py-2.5 md:py-3 z-10 print:border-b print:border-zinc-300">
+                  <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                    {/* Left Block: Eyebrow + Title + Inline Chips */}
+                    <div className="flex items-center gap-2.5 flex-wrap min-w-0 flex-1">
+                      <span className={`text-[8px] font-mono tracking-[0.2em] ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase shrink-0`}>
+                        {activeTab === "roi" 
+                          ? "SIMULADOR DE ROI & LTV" 
+                          : activeTab === "hooks" 
+                          ? "GANCHOS DE VENTA" 
+                          : activeTab === "tasks" 
+                          ? "PLAN DE ACCIÓN" 
+                          : "PLAN ESTRATÉGICO"}
+                      </span>
+                      <span className="text-slate-300 text-xs shrink-0">•</span>
+                      <h1 className="font-display text-sm md:text-base font-bold tracking-tight text-slate-900 truncate max-w-[200px] md:max-w-[280px] shrink-0">
+                        {formData.nombreNegocio || "Nueva Estrategia"}
+                      </h1>
 
-                        {/* Inline metadata chips */}
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-600 flex-wrap">
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap">
-                            {formData.tipoModelo}
-                          </span>
-                          {formData.rubro && (
-                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap hidden md:inline-block">
-                              {formData.rubro}
-                            </span>
-                          )}
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap">
-                            {formData.plazoMeta}
-                          </span>
-                          {formData.ubicacion && (
-                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap hidden lg:inline-flex items-center gap-1">
-                              <MapPin className="w-2.5 h-2.5 text-slate-400" />
-                              {formData.ubicacion}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Block: Brand & Date & Floating Expand Trigger */}
-                      <div className="flex items-center gap-3 shrink-0 text-right ml-auto">
-                        <div className="hidden sm:block text-right leading-tight">
-                          <span className="font-display text-[10px] font-bold tracking-wider text-slate-900 block">
-                            {consultorNombre.toUpperCase()}
-                          </span>
-                          <span className={`text-[8px] font-mono tracking-wider ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} uppercase font-bold block`}>
-                            GROWTH PLATFORM
-                          </span>
-                        </div>
-                        <span className="text-[9px] text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-150">
-                          {new Date().toLocaleDateString("es-ES", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric"
-                          })}
+                      {/* Inline metadata chips */}
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 flex-wrap">
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap">
+                          {formData.tipoModelo}
                         </span>
+                        {formData.rubro && (
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap hidden md:inline-block">
+                            {formData.rubro}
+                          </span>
+                        )}
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap">
+                          {formData.plazoMeta}
+                        </span>
+                        {formData.ubicacion && (
+                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium whitespace-nowrap hidden lg:inline-flex items-center gap-1">
+                            <MapPin className="w-2.5 h-2.5 text-slate-400" />
+                            {formData.ubicacion}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* SCROLLABLE BODY CONTENT */}
-                  <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6 md:pl-8 md:pr-6 md:py-8 space-y-8 scroll-smooth print:overflow-visible print:p-0">
+                    {/* Right Block: Brand & Date */}
+                    <div className="flex items-center gap-3 shrink-0 text-right ml-auto">
+                      <div className="hidden sm:block text-right leading-tight">
+                        <span className="font-display text-[10px] font-bold tracking-wider text-slate-900 block">
+                          {consultorNombre.toUpperCase()}
+                        </span>
+                        <span className={`text-[8px] font-mono tracking-wider ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} uppercase font-bold block`}>
+                          GROWTH PLATFORM
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-150">
+                        {new Date().toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric"
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SCROLLABLE BODY CONTENT */}
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 md:p-6 lg:p-8 space-y-8 scroll-smooth print:overflow-visible print:p-0">
+                  {(activeTab === "strategy" || generationStatus !== "finished") ? (
+                    <>
                     {resumen ? (
                       editingSectionId === "resumen" ? (
                         <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-8 space-y-4 animate-fade-in border border-slate-800">
@@ -1972,40 +1979,35 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                  </div>
-
-                  {/* FIXED FOOTER: Metadata line */}
-                  <div className="shrink-0 bg-white border-t border-slate-150 py-3.5 px-6 md:px-8 text-center text-[9px] text-slate-400 flex flex-wrap justify-between gap-4 font-mono z-10">
-                    <span>ID-PLAN: {selectedHistoryId ? selectedHistoryId.slice(0, 8).toUpperCase() : "PROTOTIPO-SCALING"}</span>
-                    <span>CONFIDENCIAL • {formData.nombreNegocio.toUpperCase() || "NEGOCIO"}.</span>
-                    <span>PÁGINA 1 DE 1</span>
-                  </div>
-
-                  {/* FLOATING ACTION BUTTON: Reading Mode / Expand Canvas (Only when strategy is finished) */}
-                  {generationStatus === "finished" && (
-                    <button
-                      onClick={() => setIsExpandedViewOpen(true)}
-                      className="absolute bottom-10 right-6 z-20 bg-slate-900/95 hover:bg-blue-600 text-white py-2.5 px-4 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-blue-500/25 backdrop-blur-xl transition-all duration-300 flex items-center gap-2.5 text-xs font-bold border border-slate-700/80 group cursor-pointer hover:scale-105 active:scale-95 print:hidden ring-1 ring-white/10"
-                      title="Abrir vista de lectura en pantalla completa"
-                    >
-                      <Maximize2 className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
-                      <span className="whitespace-nowrap tracking-wide">Lectura Completa</span>
-                    </button>
+                    </>
+                  ) : activeTab === "roi" ? (
+                    <ROICalculator formData={formData} />
+                  ) : activeTab === "hooks" ? (
+                    <HookGenerator formData={formData} />
+                  ) : (
+                    <TaskBoard formData={formData} strategyType={selectedStrategyType} />
                   )}
-                </article>
-              ) : activeTab === "roi" ? (
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                  <ROICalculator formData={formData} />
                 </div>
-              ) : activeTab === "hooks" ? (
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                  <HookGenerator formData={formData} />
+
+                {/* FIXED FOOTER: Metadata line */}
+                <div className="shrink-0 bg-white border-t border-slate-150 py-3.5 px-6 md:px-8 text-center text-[9px] text-slate-400 flex flex-wrap justify-between gap-4 font-mono z-10">
+                  <span>ID-PLAN: {selectedHistoryId ? selectedHistoryId.slice(0, 8).toUpperCase() : "PROTOTIPO-SCALING"}</span>
+                  <span>CONFIDENCIAL • {formData.nombreNegocio.toUpperCase() || "NEGOCIO"}.</span>
+                  <span>PÁGINA 1 DE 1</span>
                 </div>
-              ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                  <TaskBoard formData={formData} strategyType={selectedStrategyType} />
-                </div>
-              )}
+
+                {/* FLOATING ACTION BUTTON: Reading Mode / Expand Canvas (Only for strategy tab when finished) */}
+                {activeTab === "strategy" && generationStatus === "finished" && (
+                  <button
+                    onClick={() => setIsExpandedViewOpen(true)}
+                    className="absolute bottom-12 right-6 z-20 bg-slate-900/95 hover:bg-blue-600 text-white py-2.5 px-4 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-blue-500/25 backdrop-blur-xl transition-all duration-300 flex items-center gap-2.5 text-xs font-bold border border-slate-700/80 group cursor-pointer hover:scale-105 active:scale-95 print:hidden ring-1 ring-white/10"
+                    title="Abrir vista de lectura en pantalla completa"
+                  >
+                    <Maximize2 className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />
+                    <span className="whitespace-nowrap tracking-wide">Lectura Completa</span>
+                  </button>
+                )}
+              </article>
 
               {/* Error recovery block */}
               {generationStatus === "error" && errorMessage && (
@@ -2459,6 +2461,7 @@ export default function App() {
         supabaseClient={getSupabaseClient()}
         consultorNombre={consultorNombre}
         setConsultorNombre={setConsultorNombre}
+        accentColor={accentColor}
         triggerToast={triggerToast}
       />
 

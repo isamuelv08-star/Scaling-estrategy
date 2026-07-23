@@ -132,16 +132,16 @@ export const HookGenerator: React.FC<HookGeneratorProps> = ({ formData }) => {
     <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-fade-in text-slate-800">
       
       {/* Cabecera */}
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-950 p-6 text-white text-left">
+      <div className="bg-slate-50/90 border-b border-slate-100 p-5 md:p-6 text-left">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/20 backdrop-blur rounded-xl border border-blue-400/30">
-            <Sparkles className="w-6 h-6 text-blue-300" />
+          <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 shrink-0">
+            <Sparkles className="w-5 h-5 text-amber-600" />
           </div>
           <div>
-            <h3 className="font-display text-lg font-bold tracking-tight">
+            <h3 className="font-display text-sm md:text-base font-bold text-slate-900 tracking-tight">
               Generador de Ganchos Persuasivos
             </h3>
-            <p className="text-xs text-blue-200/80 mt-0.5 font-light">
+            <p className="text-xs text-slate-500 mt-0.5 font-normal">
               Fórmulas de Copywriting probadas para acelerar tus conversiones en redes y correos.
             </p>
           </div>

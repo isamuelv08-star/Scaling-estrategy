@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   User,
@@ -19,6 +19,7 @@ interface ConfiguracionModalProps {
   supabaseClient: any;
   consultorNombre: string;
   setConsultorNombre: (name: string) => void;
+  accentColor?: string;
   triggerToast?: (message: string, type?: "success" | "error" | "info") => void;
 }
 
@@ -29,10 +30,11 @@ export const ConfiguracionModal: React.FC<ConfiguracionModalProps> = ({
   supabaseClient,
   consultorNombre,
   setConsultorNombre,
+  accentColor = "blue",
   triggerToast,
 }) => {
   const [nombre, setNombre] = useState(
-    user?.user_metadata?.display_name || consultorNombre || ""
+    consultorNombre || user?.user_metadata?.display_name || ""
   );
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -46,6 +48,12 @@ export const ConfiguracionModal: React.FC<ConfiguracionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"cuenta" | "seguridad" | "preferencias">("cuenta");
 
+  useEffect(() => {
+    if (isOpen) {
+      setNombre(consultorNombre || user?.user_metadata?.display_name || "");
+    }
+  }, [isOpen, consultorNombre, user]);
+
   if (!isOpen) return null;
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -53,26 +61,44 @@ export const ConfiguracionModal: React.FC<ConfiguracionModalProps> = ({
     setIsLoading(true);
 
     try {
-      // Update local name state
-      if (nombre.trim()) {
-        setConsultorNombre(nombre.trim());
+      const trimmedNombre = nombre.trim();
+      if (trimmedNombre) {
+        setConsultorNombre(trimmedNombre);
       }
 
       // Save language and currency preferences
       localStorage.setItem("app_language", language);
       localStorage.setItem("app_currency", currency);
 
-      // If Supabase client exists and user is logged in, update metadata
+      // If Supabase client exists and user is logged in, update metadata AND database table
       if (supabaseClient && user) {
-        const { error } = await supabaseClient.auth.updateUser({
+        // 1. Update Auth user metadata
+        const { error: authError } = await supabaseClient.auth.updateUser({
           data: {
-            display_name: nombre.trim(),
+            display_name: trimmedNombre,
             preferred_language: language,
             preferred_currency: currency,
           },
         });
 
-        if (error) throw error;
+        if (authError) {
+          console.warn("Warn updating auth metadata:", authError);
+        }
+
+        // 2. Persist in 'perfiles' table so it reloads correctly on next login / refresh
+        const { error: profileError } = await supabaseClient.from("perfiles").upsert(
+          {
+            user_id: user.id,
+            consultor_nombre: trimmedNombre,
+            accent_color: accentColor,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+
+        if (profileError) {
+          console.error("Error persisting profile in database table:", profileError);
+        }
       }
 
       triggerToast?.("Configuración y perfil actualizados con éxito", "success");
@@ -199,7 +225,7 @@ export const ConfiguracionModal: React.FC<ConfiguracionModalProps> = ({
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 block">
-                  Nombre del Usuario o Agencia
+                  Nombre del Usuario
                 </label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
