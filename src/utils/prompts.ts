@@ -236,16 +236,22 @@ Propón exactamente 2 o 3 campañas hiper-específicas de adquisición pagada u 
 - **Reactivación** (Venta cruzada o reactivación de clientes antiguos)
 - **Lanzamiento** (Para un nuevo producto o promoción estacional)
 
-Para cada campaña propuesta, debes estructurar los detalles de forma exhaustiva y corporativa:
+Para cada campaña propuesta, debes estructurar los detalles de forma exhaustiva y corporativa, usando la terminología REAL de Meta Ads Manager (no la generalices ni la traduzcas):
+
 - **Nombre de Campaña e Industria:** (ej. Captación de Leads para ${data.nombreNegocio})
 - **Taxonomía:** (Debe ser una de las 5 opciones de arriba)
-- **Plataformas de Distribución:** (Meta Ads, Google Search, LinkedIn Ads, TikTok, etc.)
-- **Público / Segmentación:** (Públicos similares, intereses específicos de ${data.publicoObjetivo})
-- **Ángulo del Mensaje y Copys sugeridos:** (Enfoque de dolor y ganchos persuasivos para vender ${data.productoEstrella})
+- **Objetivo de campaña (Meta Ads Manager):** uno exacto de estos — Reconocimiento / Tráfico / Interacción / Clientes potenciales / Ventas / Promoción de la app. No uses "marketing digital" genérico, elige el objetivo real que se selecciona en la plataforma.
+- **Plataformas de Distribución:** (Meta Ads, Google Search, LinkedIn Ads, TikTok, etc. — si es Meta Ads, sé específico en el siguiente punto)
+- **Ubicaciones (si es Meta Ads):** recomienda "Ubicaciones Advantage+ (automáticas)" si el negocio es pequeño o nuevo en pauta — es lo más eficiente hoy para la mayoría. Si hay una razón concreta para restringir, especifica cuáles (Feed de Instagram, Stories, Reels, Facebook Feed).
+- **Público / Segmentación:** si el negocio tiene poca data histórica de píxel o de clientes (revisa el historial de inversión en Ads ya declarado), recomienda "Audiencia Advantage+ (amplia, que Meta optimice)". Si hay razón para segmentar manualmente, especifica edad, género, ubicación geográfica e intereses/comportamientos concretos y específicos a ${data.publicoObjetivo} — nunca "personas interesadas en marketing" genérico.
+- **Formato del anuncio:** uno de — Imagen única / Carrusel / Video o Reel / Colección. Justifica la elección según el objetivo y ${data.productoEstrella}.
+- **Dirección creativa (qué grabar o fotografiar):** descripción concreta y específica a este negocio — no "una foto del producto". Ejemplo del nivel de detalle esperado: "video de 15 segundos mostrando [proceso específico del negocio], grabado desde [ángulo], con [detalle que genere confianza]".
+- **Ángulo del Mensaje y Copys sugeridos:** (qué duda, dolor, deseo u objeción ataca — enfoque de dolor y ganchos persuasivos para vender ${data.productoEstrella}, con una línea de ejemplo de gancho real, no una plantilla vacía)
+- **Botón de CTA:** uno real de Meta Ads Manager — Enviar mensaje / Comprar ahora / Más información / Registrarte / Contactarnos / Llamar ahora. Elige el más natural para este negocio y este objetivo.
 - **Presupuesto Asignado:** (Distribución exacta del presupuesto mensual de ${data.presupuesto})
 - **Duración Estimada:**
 - **KPI Primario de Campaña:**
-- **Regla de Decisión Operativa:** (ej. "Si el Costo por Lead supera los X USD, reasignar 20% del presupuesto al Ad Set B").
+- **Regla de Decisión Operativa:** (ej. "Si el Costo por Lead supera los X USD, reasignar 20% del presupuesto al Ad Set B")
 
 Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
