@@ -351,8 +351,9 @@ export default function App() {
         setIsConfigModalOpen(false);
         setConsultorNombre("SCALING STRATEGY");
         setAccentColor("blue");
+        setIsAuthModalOpen(false);
         if (event === "SIGNED_OUT") {
-          setIsAuthModalOpen(true);
+          setIsAuthModalOpen(false);
         }
       }
     });
@@ -1401,7 +1402,7 @@ export default function App() {
                       setIsWorkspaceActive(false);
                       setIsHistoryOpen(false);
                       setIsConfigModalOpen(false);
-                      setIsAuthModalOpen(true);
+                      setIsAuthModalOpen(false);
                       triggerToast("Sesión cerrada correctamente", "info");
                     }
                   }}
@@ -1415,7 +1416,10 @@ export default function App() {
                 </button>
               ) : (
                 <button
-                  onClick={() => setIsAuthModalOpen(true)}
+                  onClick={() => {
+                    setIsWorkspaceActive(false);
+                    setIsAuthModalOpen(false);
+                  }}
                   className={`w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer text-indigo-600 hover:bg-indigo-50 ${
                     isSidebarCollapsed ? "justify-center" : ""
                   }`}
