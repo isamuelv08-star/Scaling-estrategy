@@ -276,6 +276,9 @@ export default function App() {
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>("");
 
+  // Modo Simple vs Detallado para el Plan de Acción
+  const [modoSimple, setModoSimple] = useState<boolean>(false);
+
   // Sidebar Collapsed State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
@@ -754,6 +757,26 @@ export default function App() {
     return block?.text?.trim() || JSON.stringify(formData); // si falla, usa el formData crudo como respaldo
   }
 
+  // Toma el Plan de Acción ya generado (detallado) y lo comprime a una versión
+  // de solo pasos ejecutables, sin explicación. Se genera UNA vez, no en cada
+  // toggle del usuario.
+  async function generatePlanSimple(planDetallado: string, invokeFn: Function): Promise<string> {
+    const system = "Tu única tarea es tomar un plan de acción de marketing ya escrito y comprimirlo a su versión más simple posible: una lista numerada de pasos puros en imperativo, sin explicar el 'por qué', sin la estructura de qué/cómo/cómo-se-mide, sin KPIs ni justificaciones — solo la acción literal que hay que ejecutar. Mantén las mismas fases (Mes 1, Mes 2-3, Mes 4-6) como sub-encabezados con '### ', pero cada acción debe ser una sola línea corta y directa, tipo lista de mandado. No agregues nada que no esté ya en el plan original.";
+
+    const userPrompt = `Comprime este plan de acción a su versión simple, manteniendo las mismas fases:\n\n${planDetallado}`;
+
+    const response = await invokeFn({
+      action: "generate",
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      system,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const block = response?.content?.find((b: any) => b.type === "text");
+    return block?.text?.trim() || planDetallado; // si falla, usa el detallado como respaldo
+  }
+
   // Continuation helper to handle max_tokens truncation seamlessly
   async function generateSectionComplete(
     basePayload: any,
@@ -891,6 +914,22 @@ export default function App() {
           ...currentSectionsState,
           [currentSection.id]: textBlocks
         };
+
+        // Si esta sección es el Plan de Acción, generar versión simple comprimida con Haiku
+        if (currentSection.id === "plan") {
+          try {
+            const planSimple = await generatePlanSimple(textBlocks, (p: any) =>
+              invokeEdgeFunctionWithRetry(p, (attempt, delay, errorMsg) => {
+                setRetryInfo({ attempt, delay, errorMsg });
+              })
+            );
+            currentSectionsState["plan_accion_simple"] = planSimple;
+          } catch (err) {
+            console.warn("No se pudo generar la versión simple del plan de acción:", err);
+            currentSectionsState["plan_accion_simple"] = textBlocks;
+          }
+        }
+
         setSections(currentSectionsState);
 
         // Pause briefly between requests to mitigate rate limits
@@ -1861,12 +1900,16 @@ export default function App() {
                       const isCurrent = currentSectionIndex === index;
 
                       if (completedContent) {
-                         const cleanedText = cleanSectionContent(completedContent);
+                         const isPlanSection = sec.id === "plan";
+                         const rawContentToRender = (isPlanSection && modoSimple && sections["plan_accion_simple"])
+                           ? sections["plan_accion_simple"]
+                           : completedContent;
+                         const cleanedText = cleanSectionContent(rawContentToRender);
                          const isEditingThisSection = editingSectionId === sec.id;
 
                          return (
                            <div key={sec.id} className="animate-fade-in bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 space-y-4 print:border-none print:shadow-none print:p-0 print:border-b print:border-slate-250 print:pb-8 relative group">
-                             <div className="flex items-center justify-between pb-3 border-b border-slate-100 print:pb-2">
+                             <div className="flex items-center justify-between pb-3 border-b border-slate-100 print:pb-2 flex-wrap gap-2">
                                <div className="flex items-center gap-3">
                                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-150 print:hidden text-slate-700">
                                    {getSectionIcon(sec.id)}
@@ -1879,20 +1922,50 @@ export default function App() {
                                  </div>
                                </div>
 
-                               {/* Edit Button for finished sections */}
-                               {generationStatus === "finished" && !isEditingThisSection && (
-                                 <button
-                                   onClick={() => {
-                                     setEditingSectionId(sec.id);
-                                     setEditingText(completedContent);
-                                   }}
-                                   className="bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold border border-slate-200 shadow-sm print:hidden"
-                                   title="Editar sección"
-                                 >
-                                   <Edit className="w-3.5 h-3.5" />
-                                   <span>Editar</span>
-                                 </button>
-                               )}
+                               <div className="flex items-center gap-2 print:hidden">
+                                 {/* Toggle switch para Modo Simple / Detallado en Plan de Acción */}
+                                 {isPlanSection && !isEditingThisSection && (
+                                   <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/80">
+                                     <button
+                                       type="button"
+                                       onClick={() => setModoSimple(false)}
+                                       className={`text-[11px] px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                                         !modoSimple
+                                           ? "bg-slate-900 text-white font-bold shadow-xs"
+                                           : "text-slate-600 hover:text-slate-900"
+                                       }`}
+                                     >
+                                       Detallado
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={() => setModoSimple(true)}
+                                       className={`text-[11px] px-3 py-1 rounded-full font-medium transition-all cursor-pointer ${
+                                         modoSimple
+                                           ? "bg-slate-900 text-white font-bold shadow-xs"
+                                           : "text-slate-600 hover:text-slate-900"
+                                       }`}
+                                     >
+                                       Simple
+                                     </button>
+                                   </div>
+                                 )}
+
+                                 {/* Edit Button for finished sections */}
+                                 {generationStatus === "finished" && !isEditingThisSection && (
+                                   <button
+                                     onClick={() => {
+                                       setEditingSectionId(sec.id);
+                                       setEditingText(rawContentToRender);
+                                     }}
+                                     className="bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold border border-slate-200 shadow-sm print:hidden"
+                                     title="Editar sección"
+                                   >
+                                     <Edit className="w-3.5 h-3.5" />
+                                     <span>Editar</span>
+                                   </button>
+                                 )}
+                               </div>
                              </div>
 
                              {isEditingThisSection ? (
@@ -1915,7 +1988,8 @@ export default function App() {
                                    </button>
                                    <button
                                      onClick={() => {
-                                       setSections(prev => ({ ...prev, [sec.id]: editingText }));
+                                       const targetKey = (sec.id === "plan" && modoSimple && sections["plan_accion_simple"]) ? "plan_accion_simple" : sec.id;
+                                       setSections(prev => ({ ...prev, [targetKey]: editingText }));
                                        setEditingSectionId(null);
                                        triggerToast(`Sección ${sec.name} actualizada con éxito`, "success");
                                      }}
