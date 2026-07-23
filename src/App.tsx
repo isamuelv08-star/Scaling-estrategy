@@ -399,11 +399,24 @@ export default function App() {
     }
   };
 
+  // Memoized Supabase Client Ref to prevent duplicate client creation on every render
+  const supabaseClientRef = useRef<any>(null);
+  const lastSupabaseCredsRef = useRef<{ url: string; key: string }>({ url: "", key: "" });
+
   // Helper to initialize and retrieve Supabase Client
   const getSupabaseClient = () => {
     if (!supabaseUrl || !supabaseAnonKey) return null;
+    if (
+      supabaseClientRef.current &&
+      lastSupabaseCredsRef.current.url === supabaseUrl &&
+      lastSupabaseCredsRef.current.key === supabaseAnonKey
+    ) {
+      return supabaseClientRef.current;
+    }
     try {
-      return createClient(supabaseUrl, supabaseAnonKey);
+      lastSupabaseCredsRef.current = { url: supabaseUrl, key: supabaseAnonKey };
+      supabaseClientRef.current = createClient(supabaseUrl, supabaseAnonKey);
+      return supabaseClientRef.current;
     } catch (err) {
       console.error("Error al instanciar el cliente Supabase:", err);
       return null;
@@ -1278,7 +1291,9 @@ export default function App() {
       {!isWorkspaceActive ? (
         <WelcomeScreen
           onStart={(initialData) => {
-            setFormData(initialData);
+            if (initialData && initialData.nombreNegocio) {
+              setFormData(initialData);
+            }
             setWizardStep(1);
             setIsWorkspaceActive(true);
           }}
@@ -1289,7 +1304,10 @@ export default function App() {
           }}
           historyCount={historyList.length}
           user={user}
-          onLoginClick={() => setIsAuthModalOpen(true)}
+          onLoginClick={() => {
+            setIsWorkspaceActive(false);
+            setIsAuthModalOpen(false);
+          }}
           supabaseClient={getSupabaseClient()}
           triggerToast={triggerToast}
         />
