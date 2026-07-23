@@ -1648,11 +1648,11 @@ export default function App() {
             {/* RIGHT PANEL: DYNAMIC STRATEGY CANVAS SHEET */}
             <div 
               style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${100 - leftPanelWidth}%` : '100%' }}
-              className="w-full text-left relative space-y-4 max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar p-1 scroll-smooth"
+              className="w-full text-left relative space-y-3 flex flex-col h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] overflow-hidden p-1"
             >
               {/* Tab Selector when finished - STICKY FIXED HEADER WITHOUT UGLY SHADOWS */}
               {generationStatus === "finished" && (
-                <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md pt-2 pb-3 print:hidden animate-fade-in">
+                <div className="shrink-0 bg-slate-50/95 backdrop-blur-md pb-1 pt-0 print:hidden animate-fade-in z-20">
                   <div className="flex flex-wrap md:flex-nowrap bg-slate-200/60 p-1.5 rounded-2xl gap-1 border border-slate-200/80 shadow-xs">
                     <button
                       onClick={() => setActiveTab("strategy")}
@@ -1704,14 +1704,13 @@ export default function App() {
 
               {/* Render either Strategy canvas sheet, ROI calculator, or Copywriting hooks */}
               {(generationStatus !== "finished" || activeTab === "strategy") ? (
-                <>
-                  {/* Document Sheet Layout */}
-                  <article
-                    id="printed-document-canvas"
-                    className="bg-white text-slate-800 rounded-3xl shadow-xs border border-slate-200/80 p-6 md:p-10 relative overflow-hidden flex flex-col gap-8 print:p-0 print:shadow-none print:rounded-none print:border-none"
-                  >
-                    {/* Letterhead header block */}
-                    <div className="border-b border-slate-200/80 pb-6 flex flex-wrap items-start justify-between gap-6 print:border-b print:border-zinc-300">
+                <article
+                  id="printed-document-canvas"
+                  className="flex-1 min-h-0 bg-white text-slate-800 rounded-3xl shadow-xs border border-slate-200/80 relative overflow-hidden flex flex-col print:h-auto print:overflow-visible print:p-0 print:shadow-none print:rounded-none print:border-none"
+                >
+                  {/* FIXED HEADER: Letterhead header block */}
+                  <div className="shrink-0 bg-white border-b border-slate-200/80 p-6 md:px-8 md:py-6 z-10 print:border-b print:border-zinc-300">
+                    <div className="flex flex-wrap items-start justify-between gap-6">
                       <div className="space-y-2">
                         <span className={`text-[8px] font-mono tracking-[0.25em] ${COLOR_THEMES[accentColor]?.text || "text-blue-600"} font-bold uppercase block`}>
                           PLAN ESTRATÉGICO DE CRECIMIENTO CORPORATIVO
@@ -1750,220 +1749,226 @@ export default function App() {
                         </span>
                       </div>
                     </div>
-
-                    {/* Content Section Sheet */}
-                    <div className="space-y-8">
-                      {resumen ? (
-                        editingSectionId === "resumen" ? (
-                          <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-8 space-y-4 animate-fade-in border border-slate-800">
-                            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                              <span className="text-[10px] font-mono tracking-widest text-blue-400 font-bold uppercase">
-                                EDITANDO SÍNTESIS EJECUTIVA
-                              </span>
-                              <span className="text-[10px] text-slate-400">
-                                {editingText.length} caracteres
-                              </span>
-                            </div>
-                            <textarea
-                              value={editingText}
-                              onChange={(e) => setEditingText(e.target.value)}
-                              className="w-full min-h-[150px] bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs md:text-sm text-slate-100 focus:outline-none focus:border-blue-500 font-serif leading-relaxed"
-                              placeholder="Escriba la síntesis ejecutiva aquí..."
-                            />
-                            <div className="flex justify-end gap-2.5">
-                              <button
-                                onClick={() => setEditingSectionId(null)}
-                                className="px-3.5 py-1.5 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
-                              >
-                                Cancelar
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setResumen(editingText);
-                                  setEditingSectionId(null);
-                                  triggerToast("Síntesis ejecutiva actualizada", "success");
-                                }}
-                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
-                              >
-                                Guardar Cambios
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="relative group">
-                            {renderCleanSummary(resumen, accentColor)}
-                            {generationStatus === "finished" && (
-                              <button
-                                onClick={() => {
-                                  setEditingSectionId("resumen");
-                                  setEditingText(resumen);
-                                }}
-                                className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold shadow-sm backdrop-blur border border-white/5 print:hidden"
-                                title="Editar Resumen"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                                <span>Editar</span>
-                              </button>
-                            )}
-                          </div>
-                        )
-                      ) : (
-                      generationStatus === "idle" && formData.nombreNegocio && (
-                        <div className="p-4 bg-slate-50 border border-slate-200/60 border-dashed rounded-2xl text-xs text-slate-600 italic">
-                          "Plan táctico estructurado para escalar el producto estrella <b>{formData.productoEstrella || "[Su Producto Estrella]"}</b> en <b>{formData.ubicacion || "[Ubicación de Operación]"}</b>, con una meta prioritaria a <b>{formData.plazoMeta}</b> de: <b>{formData.metaPrincipal || "[Meta Principal]"}</b>."
-                        </div>
-                      )
-                    )}
-
-                    {/* Rendering Content Sections */}
-                    <div className="space-y-10">
-                      {renderableSections.map((sec, index) => {
-                        const completedContent = sections[sec.id];
-                        const isCurrent = currentSectionIndex === index;
-
-                        if (completedContent) {
-                           const cleanedText = cleanSectionContent(completedContent);
-                           const isEditingThisSection = editingSectionId === sec.id;
-
-                           return (
-                             <div key={sec.id} className="animate-fade-in bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 space-y-4 print:border-none print:shadow-none print:p-0 print:border-b print:border-slate-250 print:pb-8 relative group">
-                               <div className="flex items-center justify-between pb-3 border-b border-slate-100 print:pb-2">
-                                 <div className="flex items-center gap-3">
-                                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-150 print:hidden text-slate-700">
-                                     {getSectionIcon(sec.id)}
-                                   </div>
-                                   <div>
-                                     <span className={`text-[9px] font-mono font-bold tracking-widest ${COLOR_THEMES[accentColor]?.text || "text-slate-400"} block uppercase print:hidden`}>
-                                       {isEditingThisSection ? "EDITANDO CONTENIDO" : "SECCIÓN COMPLETADA"}
-                                     </span>
-                                     <h3 className="font-display text-sm md:text-base font-bold text-slate-900 tracking-tight print:text-black">{sec.name}</h3>
-                                   </div>
-                                 </div>
-
-                                 {/* Edit Button for finished sections */}
-                                 {generationStatus === "finished" && !isEditingThisSection && (
-                                   <button
-                                     onClick={() => {
-                                       setEditingSectionId(sec.id);
-                                       setEditingText(completedContent);
-                                     }}
-                                     className="bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold border border-slate-200 shadow-sm print:hidden"
-                                     title="Editar sección"
-                                   >
-                                     <Edit className="w-3.5 h-3.5" />
-                                     <span>Editar</span>
-                                   </button>
-                                 )}
-                               </div>
-
-                               {isEditingThisSection ? (
-                                 <div className="space-y-4 pt-2">
-                                   <p className="text-[10px] text-slate-500 leading-normal">
-                                     Puede editar directamente el texto (admite sintaxis Markdown para tablas, viñetas y negritas). Los cambios se sincronizan al instante en todas las exportaciones, descargas e impresiones.
-                                   </p>
-                                   <textarea
-                                     value={editingText}
-                                     onChange={(e) => setEditingText(e.target.value)}
-                                     className="w-full min-h-[250px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs md:text-sm text-slate-850 focus:outline-none focus:border-blue-600 font-mono leading-relaxed focus:ring-1 focus:ring-blue-600"
-                                     placeholder={`Escriba el contenido para ${sec.name}...`}
-                                   />
-                                   <div className="flex justify-end gap-2.5">
-                                     <button
-                                       onClick={() => setEditingSectionId(null)}
-                                       className="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:text-slate-950 rounded-xl text-xs font-bold transition cursor-pointer hover:bg-slate-50"
-                                     >
-                                       Cancelar
-                                     </button>
-                                     <button
-                                       onClick={() => {
-                                         setSections(prev => ({ ...prev, [sec.id]: editingText }));
-                                         setEditingSectionId(null);
-                                         triggerToast(`Sección ${sec.name} actualizada con éxito`, "success");
-                                       }}
-                                       className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
-                                     >
-                                       Guardar Cambios
-                                     </button>
-                                   </div>
-                                 </div>
-                               ) : (
-                                 <div className="prose max-w-none text-xs md:text-sm font-normal text-slate-700 leading-relaxed space-y-4 print:text-black">
-                                   {parseMarkdownToReact(cleanedText)}
-                                 </div>
-                               )}
-                             </div>
-                           );
-                        }
-
-                        if (generationStatus === "idle" || generationStatus === "selecting") {
-                           return (
-                             <div key={sec.id} className="border border-dashed border-slate-200/80 rounded-2xl p-5 bg-slate-50/30 space-y-2 text-xs">
-                               <div className="flex items-center gap-2 text-slate-400">
-                                 <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
-                                   {index + 1}
-                                 </div>
-                                 <h4 className="font-bold text-slate-700">{sec.name}</h4>
-                                 <span className="text-[9px] font-mono bg-slate-100 px-2 py-0.5 rounded ml-auto">Borrador en Cola</span>
-                                </div>
-                               <p className="text-[11px] text-slate-400 pl-7 leading-relaxed font-light">
-                                 Recomendaciones tácticas hiper-personalizadas para {formData.nombreNegocio || "su empresa"} enfocadas en potenciar {formData.productoEstrella || "su producto estrella"} con la máxima rentabilidad comercial.
-                               </p>
-                             </div>
-                           );
-                        }
-
-                        if (isCurrent) {
-                           return (
-                             <div key={sec.id} className="border border-blue-200/80 rounded-2xl p-5 bg-blue-50/20 space-y-3 animate-pulse text-xs">
-                               <div className="flex items-center gap-2 text-blue-600">
-                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                 <h4 className="font-bold text-blue-800">{sec.name}</h4>
-                                 <span className="text-[9px] font-mono bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full ml-auto font-bold">Redactando Sección...</span>
-                               </div>
-                               <p className="text-[11px] text-blue-600 pl-6 leading-relaxed font-medium">
-                                 {LOADING_STATUSES[loadingMessageIndex]}
-                               </p>
-                             </div>
-                           );
-                        }
-
-                        return null;
-                      })}
-                    </div>
-
-                    {/* Custom celebratory finish card with custom message per strategy */}
-                    {generationStatus === "finished" && (
-                      <div className="mt-12 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl flex flex-col md:flex-row items-center gap-6 animate-fade-in print:bg-white print:text-slate-900 print:border print:border-slate-300">
-                        <div className="p-3.5 bg-white/10 rounded-2xl shrink-0 print:border print:border-slate-300">
-                          <Award className="w-8 h-8 text-white animate-bounce print:text-indigo-600" />
-                        </div>
-                        <div className="space-y-1.5 text-center md:text-left flex-1">
-                          <span className="text-[9px] font-mono tracking-[0.25em] text-blue-200 font-bold uppercase block print:text-slate-500">DIAGNÓSTICO ESTRATÉGICO FINALIZADO</span>
-                          <h4 className="text-sm md:text-base font-bold tracking-tight text-white leading-tight print:text-slate-900">
-                            ¡Felicitaciones! Plan Táctico Concluido con Éxito
-                          </h4>
-                          <p className="text-xs md:text-sm text-blue-50/90 leading-relaxed font-light print:text-slate-700">
-                            {getEndingMessageForStrategy(selectedStrategyType, formData.nombreNegocio || "su empresa")}
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Footer metadata */}
-                  <div className="border-t border-slate-150 pt-5 mt-8 text-center text-[9px] text-slate-400 flex flex-wrap justify-between gap-4 font-mono">
+                  {/* SCROLLABLE BODY CONTENT */}
+                  <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6 md:pl-8 md:pr-6 md:py-8 space-y-8 scroll-smooth print:overflow-visible print:p-0">
+                    {resumen ? (
+                      editingSectionId === "resumen" ? (
+                        <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-8 space-y-4 animate-fade-in border border-slate-800">
+                          <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                            <span className="text-[10px] font-mono tracking-widest text-blue-400 font-bold uppercase">
+                              EDITANDO SÍNTESIS EJECUTIVA
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {editingText.length} caracteres
+                            </span>
+                          </div>
+                          <textarea
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            className="w-full min-h-[150px] bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs md:text-sm text-slate-100 focus:outline-none focus:border-blue-500 font-serif leading-relaxed"
+                            placeholder="Escriba la síntesis ejecutiva aquí..."
+                          />
+                          <div className="flex justify-end gap-2.5">
+                            <button
+                              onClick={() => setEditingSectionId(null)}
+                              className="px-3.5 py-1.5 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => {
+                                setResumen(editingText);
+                                setEditingSectionId(null);
+                                triggerToast("Síntesis ejecutiva actualizada", "success");
+                              }}
+                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                            >
+                              Guardar Cambios
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative group">
+                          {renderCleanSummary(resumen, accentColor)}
+                          {generationStatus === "finished" && (
+                            <button
+                              onClick={() => {
+                                setEditingSectionId("resumen");
+                                setEditingText(resumen);
+                              }}
+                              className="absolute top-8 right-8 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold shadow-sm backdrop-blur border border-white/5 print:hidden"
+                              title="Editar Resumen"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>Editar</span>
+                            </button>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                    generationStatus === "idle" && formData.nombreNegocio && (
+                      <div className="p-4 bg-slate-50 border border-slate-200/60 border-dashed rounded-2xl text-xs text-slate-600 italic">
+                        "Plan táctico estructurado para escalar el producto estrella <b>{formData.productoEstrella || "[Su Producto Estrella]"}</b> en <b>{formData.ubicacion || "[Ubicación de Operación]"}</b>, con una meta prioritaria a <b>{formData.plazoMeta}</b> de: <b>{formData.metaPrincipal || "[Meta Principal]"}</b>."
+                      </div>
+                    )
+                  )}
+
+                  {/* Rendering Content Sections */}
+                  <div className="space-y-10">
+                    {renderableSections.map((sec, index) => {
+                      const completedContent = sections[sec.id];
+                      const isCurrent = currentSectionIndex === index;
+
+                      if (completedContent) {
+                         const cleanedText = cleanSectionContent(completedContent);
+                         const isEditingThisSection = editingSectionId === sec.id;
+
+                         return (
+                           <div key={sec.id} className="animate-fade-in bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-sm hover:shadow-md transition-all duration-300 space-y-4 print:border-none print:shadow-none print:p-0 print:border-b print:border-slate-250 print:pb-8 relative group">
+                             <div className="flex items-center justify-between pb-3 border-b border-slate-100 print:pb-2">
+                               <div className="flex items-center gap-3">
+                                 <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-150 print:hidden text-slate-700">
+                                   {getSectionIcon(sec.id)}
+                                 </div>
+                                 <div>
+                                   <span className={`text-[9px] font-mono font-bold tracking-widest ${COLOR_THEMES[accentColor]?.text || "text-slate-400"} block uppercase print:hidden`}>
+                                     {isEditingThisSection ? "EDITANDO CONTENIDO" : "SECCIÓN COMPLETADA"}
+                                   </span>
+                                   <h3 className="font-display text-sm md:text-base font-bold text-slate-900 tracking-tight print:text-black">{sec.name}</h3>
+                                 </div>
+                               </div>
+
+                               {/* Edit Button for finished sections */}
+                               {generationStatus === "finished" && !isEditingThisSection && (
+                                 <button
+                                   onClick={() => {
+                                     setEditingSectionId(sec.id);
+                                     setEditingText(completedContent);
+                                   }}
+                                   className="bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 p-2 rounded-xl transition cursor-pointer hidden group-hover:flex items-center gap-1.5 text-[10px] font-bold border border-slate-200 shadow-sm print:hidden"
+                                   title="Editar sección"
+                                 >
+                                   <Edit className="w-3.5 h-3.5" />
+                                   <span>Editar</span>
+                                 </button>
+                               )}
+                             </div>
+
+                             {isEditingThisSection ? (
+                               <div className="space-y-4 pt-2">
+                                 <p className="text-[10px] text-slate-500 leading-normal">
+                                   Puede editar directamente el texto (admite sintaxis Markdown para tablas, viñetas y negritas). Los cambios se sincronizan al instante en todas las exportaciones, descargas e impresiones.
+                                 </p>
+                                 <textarea
+                                   value={editingText}
+                                   onChange={(e) => setEditingText(e.target.value)}
+                                   className="w-full min-h-[250px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs md:text-sm text-slate-850 focus:outline-none focus:border-blue-600 font-mono leading-relaxed focus:ring-1 focus:ring-blue-600"
+                                   placeholder={`Escriba el contenido para ${sec.name}...`}
+                                 />
+                                 <div className="flex justify-end gap-2.5">
+                                   <button
+                                     onClick={() => setEditingSectionId(null)}
+                                     className="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:text-slate-950 rounded-xl text-xs font-bold transition cursor-pointer hover:bg-slate-50"
+                                   >
+                                     Cancelar
+                                   </button>
+                                   <button
+                                     onClick={() => {
+                                       setSections(prev => ({ ...prev, [sec.id]: editingText }));
+                                       setEditingSectionId(null);
+                                       triggerToast(`Sección ${sec.name} actualizada con éxito`, "success");
+                                     }}
+                                     className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                                   >
+                                     Guardar Cambios
+                                   </button>
+                                 </div>
+                               </div>
+                             ) : (
+                               <div className="prose max-w-none text-xs md:text-sm font-normal text-slate-700 leading-relaxed space-y-4 print:text-black">
+                                 {parseMarkdownToReact(cleanedText)}
+                               </div>
+                             )}
+                           </div>
+                         );
+                      }
+
+                      if (generationStatus === "idle" || generationStatus === "selecting") {
+                         return (
+                           <div key={sec.id} className="border border-dashed border-slate-200/80 rounded-2xl p-5 bg-slate-50/30 space-y-2 text-xs">
+                             <div className="flex items-center gap-2 text-slate-400">
+                               <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
+                                 {index + 1}
+                               </div>
+                               <h4 className="font-bold text-slate-700">{sec.name}</h4>
+                               <span className="text-[9px] font-mono bg-slate-100 px-2 py-0.5 rounded ml-auto">Borrador en Cola</span>
+                              </div>
+                             <p className="text-[11px] text-slate-400 pl-7 leading-relaxed font-light">
+                               Recomendaciones tácticas hiper-personalizadas para {formData.nombreNegocio || "su empresa"} enfocadas en potenciar {formData.productoEstrella || "su producto estrella"} con la máxima rentabilidad comercial.
+                             </p>
+                           </div>
+                         );
+                      }
+
+                      if (isCurrent) {
+                         return (
+                           <div key={sec.id} className="border border-blue-200/80 rounded-2xl p-5 bg-blue-50/20 space-y-3 animate-pulse text-xs">
+                             <div className="flex items-center gap-2 text-blue-600">
+                               <Loader2 className="w-4 h-4 animate-spin" />
+                               <h4 className="font-bold text-blue-800">{sec.name}</h4>
+                               <span className="text-[9px] font-mono bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full ml-auto font-bold">Redactando Sección...</span>
+                             </div>
+                             <p className="text-[11px] text-blue-600 pl-6 leading-relaxed font-medium">
+                               {LOADING_STATUSES[loadingMessageIndex]}
+                             </p>
+                           </div>
+                         );
+                      }
+
+                      return null;
+                    })}
+                  </div>
+
+                  {/* Custom celebratory finish card with custom message per strategy */}
+                  {generationStatus === "finished" && (
+                    <div className="mt-8 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl flex flex-col md:flex-row items-center gap-6 animate-fade-in print:bg-white print:text-slate-900 print:border print:border-slate-300">
+                      <div className="p-3.5 bg-white/10 rounded-2xl shrink-0 print:border print:border-slate-300">
+                        <Award className="w-8 h-8 text-white animate-bounce print:text-indigo-600" />
+                      </div>
+                      <div className="space-y-1.5 text-center md:text-left flex-1">
+                        <span className="text-[9px] font-mono tracking-[0.25em] text-blue-200 font-bold uppercase block print:text-slate-500">DIAGNÓSTICO ESTRATÉGICO FINALIZADO</span>
+                        <h4 className="text-sm md:text-base font-bold tracking-tight text-white leading-tight print:text-slate-900">
+                          ¡Felicitaciones! Plan Táctico Concluido con Éxito
+                        </h4>
+                        <p className="text-xs md:text-sm text-blue-50/90 leading-relaxed font-light print:text-slate-700">
+                          {getEndingMessageForStrategy(selectedStrategyType, formData.nombreNegocio || "su empresa")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  </div>
+
+                  {/* FIXED FOOTER: Metadata line */}
+                  <div className="shrink-0 bg-white border-t border-slate-150 py-3.5 px-6 md:px-8 text-center text-[9px] text-slate-400 flex flex-wrap justify-between gap-4 font-mono z-10">
                     <span>ID-PLAN: {selectedHistoryId ? selectedHistoryId.slice(0, 8).toUpperCase() : "PROTOTIPO-SCALING"}</span>
                     <span>CONFIDENCIAL • {formData.nombreNegocio.toUpperCase() || "NEGOCIO"}.</span>
                     <span>PÁGINA 1 DE 1</span>
                   </div>
                 </article>
-              </>
               ) : activeTab === "roi" ? (
-                <ROICalculator formData={formData} />
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                  <ROICalculator formData={formData} />
+                </div>
               ) : activeTab === "hooks" ? (
-                <HookGenerator formData={formData} />
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                  <HookGenerator formData={formData} />
+                </div>
               ) : (
-                <TaskBoard formData={formData} strategyType={selectedStrategyType} />
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                  <TaskBoard formData={formData} strategyType={selectedStrategyType} />
+                </div>
               )}
 
               {/* Error recovery block */}
