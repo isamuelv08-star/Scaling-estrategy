@@ -95,7 +95,7 @@ serve(async (req) => {
         });
       }
 
-      const { system, messages, tools, max_tokens } = body;
+      const { system, messages, tools, max_tokens, model } = body;
 
       try {
         const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -106,7 +106,7 @@ serve(async (req) => {
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-6",
+            model: model || "claude-sonnet-4-6",
             max_tokens: max_tokens || 1500, // Optimized token limit
             system,
             messages,

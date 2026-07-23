@@ -655,6 +655,75 @@ export default function App() {
     }
   };
 
+  // Lee el formulario crudo, corrige detalles sueltos y lo estructura en un
+  // briefing limpio. Usa Haiku porque es tarea de organización, no de
+  // estrategia — no debe inventar datos que el usuario no dio.
+  async function generateBriefing(formData: FormData, invokeFn: Function): Promise<string> {
+    const system = "Eres un asistente de organización de datos. Tu única tarea es tomar la información que un dueño de negocio llenó en un formulario y convertirla en un briefing limpio, bien estructurado y fácil de leer para un consultor senior. NO agregues opiniones, NO inventes datos que no te dieron, NO analices ni recomiendes nada — solo organiza, corrige errores de tipeo obvios, y si un campo quedó vacío u ambiguo, indícalo como '(no especificado)' en vez de inventarlo. Responde solo con el briefing, en formato de lista con '- Campo: valor'.";
+
+    const userPrompt = `Organiza estos datos de negocio en un briefing limpio:\n\n${JSON.stringify(formData, null, 2)}`;
+
+    const response = await invokeFn({
+      action: "generate",
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 800,
+      system,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const block = response?.content?.find((b: any) => b.type === "text");
+    return block?.text?.trim() || JSON.stringify(formData); // si falla, usa el formData crudo como respaldo
+  }
+
+  // Continuation helper to handle max_tokens truncation seamlessly
+  async function generateSectionComplete(
+    basePayload: any,
+    invokeFn: (payload: any) => Promise<any>,
+    maxContinuations = 2
+  ): Promise<string> {
+    let fullText = "";
+    let currentMessages = [...basePayload.messages];
+    let continuations = 0;
+
+    while (continuations <= maxContinuations) {
+      const response = await invokeFn({ ...basePayload, messages: currentMessages });
+
+      if (!response?.content || !Array.isArray(response.content)) {
+        throw new Error("Respuesta inválida recibida de la API");
+      }
+
+      const textPiece = response.content
+        .filter((block: any) => block.type === "text")
+        .map((block: any) => block.text)
+        .join("\n\n");
+
+      fullText += (fullText ? "\n\n" : "") + textPiece;
+
+      if (response?.stop_reason !== "max_tokens") {
+        break; // terminó normal, no hace falta continuar
+      }
+
+      continuations++;
+      if (continuations > maxContinuations) break;
+
+      // Le pedimos a Claude que continúe exactamente donde se quedó
+      currentMessages = [
+        ...currentMessages,
+        { role: "assistant", content: textPiece },
+        {
+          role: "user",
+          content: "Continúa exactamente donde te quedaste, sin repetir nada de lo ya escrito y sin reintroducir el tema."
+        }
+      ];
+    }
+
+    if (!fullText.trim()) {
+      throw new Error("El modelo retornó una respuesta vacía para esta sección.");
+    }
+
+    return fullText;
+  }
+
   // Main generation loop
   const generateStrategy = async (startIndex = 0, strategyType = selectedStrategyType) => {
     if (!isFormValid()) {
@@ -681,6 +750,13 @@ export default function App() {
     const activeSections = getSectionsForStrategy(strategyType, formData);
 
     try {
+      // 0. Clean briefing generated with Haiku before main strategy generation
+      const briefing = await generateBriefing(formData, (p: any) =>
+        invokeEdgeFunctionWithRetry(p, (attempt, delay, errorMsg) => {
+          setRetryInfo({ attempt, delay, errorMsg });
+        })
+      );
+
       // 1. Generate the sections sequentially
       for (let i = startIndex; i < activeSections.length; i++) {
         const currentSection = activeSections[i];
@@ -707,9 +783,10 @@ export default function App() {
 
         const payload: any = {
           action: "generate",
-          system: "Eres el Consultor Principal de Scaling Strategy, una firma de consultoría de crecimiento para PyMEs. Responde con nivel estratégico real, denso en valor práctico, pero en lenguaje CLARO que cualquier dueño de negocio sin formación en marketing pueda entender sin buscar nada en Google. Si usas una sigla o término técnico (CAC, LTV, ROAS, TOFU, etc.), defínela la primera vez que aparece, entre paréntesis, en una frase simple. Evita jerga que no se explica a sí misma.",
-          messages: [{ role: "user", content: promptText }],
-          max_tokens: 1500 // Optimized from 3000 to 1500 to keep responses focused and avoid timeouts or connection pauses
+          model: "claude-sonnet-4-6",
+          system: "Eres el Consultor Principal de Scaling Strategy, una firma de consultoría de crecimiento para PyMEs. Responde con nivel estratégico real, denso en valor práctico, pero en lenguaje CLARO que cualquier dueño de negocio sin formación en marketing pueda entender sin buscar nada en Google. Si usas una sigla o término técnico (CAC, LTV, ROAS, TOFU, etc.), defínela la primera vez que aparece, entre paréntesis, en una frase simple. Evita jerga que no se explica a sí misma. REGLA ANTI-GENÉRICO: Cada afirmación, recomendación o cifra que escribas debe estar amarrada a un dato específico que el usuario proporcionó (nombre del negocio, rubro, ciudad, facturación, competidores, presupuesto, etc.) — nunca escribas una recomendación que serviría igual para cualquier negocio del mismo rubro en cualquier ciudad. Si una idea no usa ningún dato específico de ESTE negocio, no la escribas: profundiza en la que sí lo hace. Prohibido usar frases de relleno tipo 'es importante considerar', 'en el mundo actual', 'las empresas exitosas suelen'. Ve directo a la recomendación concreta.",
+          messages: [{ role: "user", content: `BRIEFING LIMPIO DEL NEGOCIO:\n${briefing}\n\n${promptText}` }],
+          max_tokens: 4000
         };
 
         // Inject Anthropic native web search tool for Section 2 (Comparativa de Mercado) only in "completa" strategy
@@ -717,28 +794,18 @@ export default function App() {
           payload.tools = [{ type: "web_search_20250305", name: "web_search" }];
         }
 
-        const data = await invokeEdgeFunctionWithRetry(
+        const textBlocks = await generateSectionComplete(
           payload,
-          (attempt, delay, errorMsg) => {
-            setRetryInfo({ attempt, delay, errorMsg });
-          }
+          (payloadToInvoke) =>
+            invokeEdgeFunctionWithRetry(
+              payloadToInvoke,
+              (attempt, delay, errorMsg) => {
+                setRetryInfo({ attempt, delay, errorMsg });
+              }
+            )
         );
 
         setRetryInfo(null);
-
-        // Extract text from content blocks
-        if (!data.content || !Array.isArray(data.content)) {
-          throw new Error("Respuesta inválida recibida de la API");
-        }
-
-        const textBlocks = data.content
-          .filter((block: any) => block.type === "text")
-          .map((block: any) => block.text)
-          .join("\n\n");
-
-        if (!textBlocks.trim()) {
-          throw new Error("El modelo retornó una respuesta vacía para esta sección.");
-        }
 
         // Save generated section in state
         currentSectionsState = {
@@ -761,29 +828,26 @@ export default function App() {
 
       const summaryPromptText = SUMMARY_PROMPT(formData, fullContentText);
 
-      const summaryData = await invokeEdgeFunctionWithRetry(
-        {
-          action: "generate",
-          system: "Eres el Socio Director de Scaling Strategy. Tu especialidad es sintetizar reportes densos en resúmenes claros y persuasivos que un dueño de negocio entiende en una sola lectura, sin jerga sin explicar.",
-          messages: [{ role: "user", content: summaryPromptText }],
-          max_tokens: 1000
-        },
-        (attempt, delay, errorMsg) => {
-          setRetryInfo({ attempt, delay, errorMsg });
-        }
+      const summaryPayload = {
+        action: "generate",
+        model: "claude-haiku-4-5-20251001",
+        system: "Eres el Socio Director de Scaling Strategy. Tu especialidad es sintetizar reportes densos en resúmenes claros y persuasivos que un dueño de negocio entiende en una sola lectura, sin jerga sin explicar. REGLA ANTI-GENÉRICO: Cada afirmación, recomendación o cifra que escribas debe estar amarrada a un dato específico que el usuario proporcionó (nombre del negocio, rubro, ciudad, facturación, competidores, presupuesto, etc.) — nunca escribas una recomendación que serviría igual para cualquier negocio del mismo rubro en cualquier ciudad.",
+        messages: [{ role: "user", content: summaryPromptText }],
+        max_tokens: 4000
+      };
+
+      const summaryText = await generateSectionComplete(
+        summaryPayload,
+        (payloadToInvoke) =>
+          invokeEdgeFunctionWithRetry(
+            payloadToInvoke,
+            (attempt, delay, errorMsg) => {
+              setRetryInfo({ attempt, delay, errorMsg });
+            }
+          )
       );
 
       setRetryInfo(null);
-
-      if (!summaryData.content || !Array.isArray(summaryData.content)) {
-        throw new Error("Respuesta de resumen inválida recibida de la API");
-      }
-
-      const summaryText = summaryData.content
-        .filter((block: any) => block.type === "text")
-        .map((block: any) => block.text)
-        .join("\n\n");
-
       setResumen(summaryText);
       setGenerationStatus("finished");
       triggerToast("¡Estrategia de Escalado generada con éxito!", "success");

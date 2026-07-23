@@ -76,6 +76,8 @@ Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
 ### 1.3. El Ángulo Estratégico de Escalado
 (Presenta una "hipótesis de escalado" o palanca de crecimiento única para ${data.nombreNegocio}. No hables de cosas genéricas como "hacer redes sociales". Diseña una táctica o enfoque específico disruptivo que potencie su producto estrella [${data.productoEstrella}] y deba guiar todo el plan estratégico).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   },
   {
@@ -116,6 +118,8 @@ Para cada uno de los 3 competidores encontrados:
 
 ### 2.3. Comparación y Ventaja Competitiva de ${data.nombreNegocio}
 (Compara la presencia de ${data.nombreNegocio} [${data.sitioWeb || "sin canal web declarado"}] con el estándar de estos competidores y define el diferencial insuperable del producto estrella [${data.productoEstrella}]).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   },
   {
@@ -148,6 +152,8 @@ Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
 ### 3.3. Pilares de Comunicación y Conversión
 (Define 3 pilares temáticos de comunicación sumamente persuasivos sobre los que se construirá toda la estrategia de contenido, pauta publicitaria y guiones de venta).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   },
   {
@@ -172,7 +178,7 @@ Crea un plan táctico de ejecución adaptado a la capacidad del equipo [${data.t
 
 *Nota: Ajusta los meses si el plazo del cliente [${data.plazoMeta}] es más corto o específico, pero mantén las 3 fases bien estructuradas.*
 
-Cada fase debe contener acciones **numeradas**. Cada acción debe ser ultra-accionable y responder estrictamente a:
+Cada fase debe contener acciones **numeradas**. Cada acción debe ser ultra-accionable y responder strictly a:
 1. **QUÉ HACER** (En imperativo directo, ej: "Implementar", "Configurar", "Automatizar").
 2. **CÓMO HACERLO** (Especificando canales, automatizaciones de CRM, herramientas [${data.herramientasActuales}] o asignación del equipo [${data.tamanoEquipo}]).
 3. **CÓMO SE MIDE** (KPI específico, meta numérica del KPI, frecuencia de control).
@@ -189,6 +195,8 @@ Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
 ### 4.3. Fase 3: Escalamiento y Optimización del Retorno (Meses 4-6)
 (Acciones numeradas con QUÉ, CÓMO y CÓMO SE MIDE).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   },
   {
@@ -239,6 +247,8 @@ Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
 ### 5.3. Campaña 3 (Opcional): [Nombre de Campaña]
 (Ficha técnica completa o justificación de por qué concentrar todo el presupuesto [${data.presupuesto}] en solo 2 campañas para evitar la dispersión de recursos y optimizar el Retorno de Inversión).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   },
   {
@@ -277,6 +287,8 @@ Detalla exactamente 6 piezas reales de contenido. Indenta cada sub-punto con 2 e
   - **Llamado a la Acción (CTA):**
   - **Pilar Temático:**
 - (Repite esta estructura exacta para las Piezas 2 a 6, asegurándote de indentar cada sub-punto con 2 espacios antes del guion. Incluye 3 piezas TOFU, 2 MOFU y 1 BOFU para respetar los porcentajes).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   },
   {
@@ -308,6 +320,8 @@ Estructura tu respuesta exactamente con los siguientes títulos usando markdown:
 
 ### 7.3. Gestión de Riesgos y Mitigación del Mayor Obstáculo [${data.obstaculo}]
 (Presenta un plan de contingencia de 2 puntos para el mayor obstáculo del cliente: [${data.obstaculo}]. Agrega una regla de contingencia financiera en caso de que las campañas tarden en traccionar para proteger el flujo de caja del negocio).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
   }
 ];
@@ -329,6 +343,8 @@ Debe capturar la esencia del diagnóstico estratégico, la gran palanca de creci
 - Comienza directamente con el texto del resumen, sin preámbulos como "Aquí está el resumen..." o títulos adicionales.
 - Usa markdown para destacar conceptos en **negrita**.
 - Escríbelo con un tono de consultoría premium de Scaling Strategy.
+
+Antes de responder, verifica: ¿este resumen menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbelo para que sí.
 `;
 
 export interface StrategySection {
@@ -353,6 +369,8 @@ Estructura tu respuesta con títulos markdown:
 ### 1.1. Análisis de Visibilidad Orgánica Actual
 ### 1.2. Tres Pilares de Contenido Estratégicos
 ### 1.3. Conexión de Mensaje con el Dolor del Cliente ideal (${data.publicoObjetivo})
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -369,6 +387,8 @@ Estructura tu respuesta con títulos markdown:
 ### 2.1. Estrategia de Embudo Orgánico (60/25/15)
 ### 2.2. Flujo de Nutrición Inbound
 ### 2.3. Acciones de Conversión Orgánica
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -384,6 +404,8 @@ Estructura tu respuesta con títulos markdown:
 ## 3. Parrilla de Contenido Práctica
 ### 3.1. 6 Piezas de Alto Rendimiento para ${data.nombreNegocio}
 (Detalla cada una de las 6 piezas utilizando un formato de lista ordenado con sub-puntos indentados: Canal, Formato, Gancho, Estructura y CTA).
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         }
       ];
@@ -406,6 +428,8 @@ Estructura tu respuesta con títulos markdown:
 ### 1.1. Análisis Financiero de Inversión de Pauta (${data.presupuesto})
 ### 1.2. Selección Crítica de Canales de Adquisición
 ### 1.3. Estimación de Costo por Lead (CPL) y CAC viable
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -421,6 +445,8 @@ Estructura tu respuesta con títulos markdown:
 ## 2. Estructura de Campañas de Alto Impacto
 ### 2.1. Campaña de Captación de Leads (Tráfico Frío)
 ### 2.2. Campaña de Remarketing y Cierre (Conversión)
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -436,6 +462,8 @@ Estructura tu respuesta con títulos markdown:
 ## 3. Directrices Creativas y Reglas de Optimización
 ### 3.1. Ángulo Creativo y Ganchos de Copywriting
 ### 3.2. Reglas de Decisión Operativa (Optimización de Presupuesto)
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         }
       ];
@@ -454,6 +482,8 @@ Estructura tu respuesta con títulos markdown:
 ### 1.1. Análisis Crítico de Rentabilidad y Escalado
 ### 1.2. Mapeo del Ratio LTV / CAC Proyectado
 ### 1.3. Erradicación del Cuello de Botella Financiero (${data.obstaculo})
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -469,6 +499,8 @@ Estructura tu respuesta con títulos markdown:
 ## 2. Objetivos SMART y Metas de Crecimiento
 ### 2.1. Objetivos Financieros SMART Corporativos
 ### 2.2. Métricas Clave de Negocio (KPMs)
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -485,6 +517,8 @@ Estructura tu respuesta con títulos markdown:
 ### 3.1. Fase 1: Cimientos y Optimización de Capacidad (Mes 1)
 ### 3.2. Fase 2: Automatización y Flujo Comercial Activo (Meses 2-3)
 ### 3.3. Fase 3: Escalamiento Rentable y Monitoreo (Meses 4-6)
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         }
       ];
@@ -501,6 +535,8 @@ Estructura tu respuesta con títulos markdown:
 ## 1. Diagnóstico de Fricción Comercial
 ### 1.1. Auditoría del Flujo Comercial y Fricciones
 ### 1.2. Evaluación de las Herramientas Actuales (${data.herramientasActuales})
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -516,6 +552,8 @@ Estructura tu respuesta con títulos markdown:
 ## 2. Protocolo de Ventas y CRM
 ### 2.1. Reglas de Velocidad de Respuesta Comercial (Speed-to-Lead)
 ### 2.2. Secuencia Táctica de Seguimiento de Leads (Contacto 1 al 5)
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -531,6 +569,8 @@ Estructura tu respuesta con títulos markdown:
 ## 3. Guión Táctico y Manejo de Objeciones
 ### 3.1. Guión de Primer Contacto Telefónico / WhatsApp
 ### 3.2. Manual de Respuestas para derribar Objeciones Comunes
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         }
       ];
@@ -547,6 +587,8 @@ Estructura tu respuesta con títulos markdown:
 ## 1. Diagnóstico Psicológico de Dolor y Deseo
 ### 1.1. El Dolor Primordial del Cliente Ideal (${data.publicoObjetivo})
 ### 1.2. Ángulos de Atracción y Deseos Latentes
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -563,6 +605,8 @@ Estructura tu respuesta con títulos markdown:
 ### 2.1. Email 1: El Espejo del Dolor (Problema)
 ### 2.2. Email 2: La Consecuencia de la Inacción (Agitación)
 ### 2.3. Email 3: El Puente hacia la Libertad (Solución - ${data.productoEstrella})
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         },
         {
@@ -578,6 +622,8 @@ Estructura tu respuesta con títulos markdown:
 ## 3. Arquitectura de Landing Page
 ### 3.1. Estructura de Secciones Paso a Paso (CRO-friendly)
 ### 3.2. Copys Principales (Titular H1, Subtítulo H2 y Botón CTA)
+
+Antes de responder, verifica: ¿esta sección menciona explícitamente el nombre del negocio, su rubro o una cifra que el usuario dio? Si no, reescríbela para que sí.
 `
         }
       ];
