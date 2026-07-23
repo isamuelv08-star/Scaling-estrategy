@@ -1536,7 +1536,7 @@ export default function App() {
             </div>
 
             {/* RIGHT PANEL: DYNAMIC STRATEGY CANVAS SHEET */}
-            <div className="lg:col-span-7 lg:sticky lg:top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 text-left relative space-y-4 scroll-smooth">
+            <div className="lg:col-span-7 lg:sticky lg:top-6 max-h-[calc(100vh-40px)] overflow-y-auto text-left relative space-y-4 scroll-smooth pr-1">
               {generationStatus === "idle" && (
                 <div className="bg-amber-50/70 border border-amber-200/50 rounded-2xl p-4 flex items-center gap-3 text-amber-800 animate-fade-in print:hidden">
                   <Sparkles className="w-4 h-4 text-amber-500 shrink-0 animate-pulse" />
@@ -1546,53 +1546,53 @@ export default function App() {
                 </div>
               )}
 
-              {/* Tab Selector when finished - STICKY FIXED HEADER */}
+              {/* Tab Selector when finished - STICKY FIXED HEADER WITHOUT UGLY SHADOWS */}
               {generationStatus === "finished" && (
-                <div className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md pt-1 pb-2 print:hidden animate-fade-in">
-                  <div className="flex flex-wrap md:flex-nowrap bg-slate-200/70 p-1 rounded-2xl gap-1 shadow-sm border border-slate-300/70">
+                <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md pb-3 pt-0 print:hidden animate-fade-in">
+                  <div className="flex flex-wrap md:flex-nowrap bg-slate-200/60 p-1.5 rounded-2xl gap-1 border border-slate-200/80">
                     <button
                       onClick={() => setActiveTab("strategy")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
                         activeTab === "strategy"
-                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                          ? "bg-white text-slate-900 shadow-xs border border-slate-200/90"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                       }`}
                     >
                       <FileText className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>Plan Estratégico</span>
+                      <span className="whitespace-nowrap">Plan Estratégico</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("roi")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
                         activeTab === "roi"
-                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                          ? "bg-white text-slate-900 shadow-xs border border-slate-200/90"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                       }`}
                     >
                       <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Simulador ROI & LTV</span>
+                      <span className="whitespace-nowrap">Simulador ROI & LTV</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("hooks")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
                         activeTab === "hooks"
-                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                          ? "bg-white text-slate-900 shadow-xs border border-slate-200/90"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                       }`}
                     >
                       <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span>Ganchos de Venta</span>
+                      <span className="whitespace-nowrap">Ganchos de Venta</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("tasks")}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-w-[120px] ${
                         activeTab === "tasks"
-                          ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80"
+                          ? "bg-white text-slate-900 shadow-xs border border-slate-200/90"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                       }`}
                     >
                       <ListTodo className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>Plan de Acción</span>
+                      <span className="whitespace-nowrap">Plan de Acción</span>
                     </button>
                   </div>
                 </div>
