@@ -66,6 +66,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     },
   ];
 
+  // Auto-redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      handleGenerate();
+    }
+  }, [user]);
+
   // Auto-play feature sliding animation
   useEffect(() => {
     const interval = setInterval(() => {
@@ -131,9 +138,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         if (data?.user) {
           triggerToast?.(
-            `¡Cuenta creada exitosamente! Bienvenido ${data.user.user_metadata?.display_name || email}`,
+            `¡Bienvenido ${data.user.user_metadata?.display_name || nombre || email}! Accediendo al sistema...`,
             "success"
           );
+          handleGenerate();
         }
       } else {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -145,9 +153,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         if (data?.user) {
           triggerToast?.(
-            `¡Acceso exitoso! Bienvenido ${data.user.user_metadata?.display_name || email}`,
+            `¡Bienvenido ${data.user.user_metadata?.display_name || email}! Accediendo al sistema...`,
             "success"
           );
+          handleGenerate();
         }
       }
     } catch (err: any) {
@@ -275,7 +284,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 {isSignUp && (
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Nombre o Agencia
+                      Nombre
                     </label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
@@ -351,7 +360,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 ) : (
                   <>
                     <KeyRound className="w-4 h-4" />
-                    <span>{isSignUp ? "Registrarse Gratis" : "Ingresar con Acceso Seguro"}</span>
+                    <span>{isSignUp ? "Registrarse" : "Ingresar"}</span>
                   </>
                 )}
               </button>
@@ -363,7 +372,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   onClick={() => setIsSignUp(!isSignUp)}
                   className="text-blue-600 hover:underline font-bold cursor-pointer ml-1"
                 >
-                  {isSignUp ? "Inicie sesión aquí" : "Regístrese gratis aquí"}
+                  {isSignUp ? "Inicie sesión aquí" : "Regístrese ahora"}
                 </button>
               </div>
             </form>
