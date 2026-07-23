@@ -36,8 +36,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   supabaseClient,
   triggerToast,
 }) => {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
@@ -96,35 +98,61 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     });
   };
 
-  const handleInlineLogin = async (e: React.FormEvent) => {
+  const handleInlineAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabaseClient) {
       triggerToast?.("El cliente de base de datos no está disponible actualmente.", "error");
       return;
     }
     if (!email.trim() || !password.trim()) {
-      triggerToast?.("Por favor rellene todos los campos.", "error");
+      triggerToast?.("Por favor rellene todos los campos requeridos.", "error");
+      return;
+    }
+
+    if (isSignUp && password.length < 6) {
+      triggerToast?.("La contraseña debe tener al menos 6 caracteres.", "error");
       return;
     }
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      });
+      if (isSignUp) {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email: email.trim(),
+          password: password,
+          options: {
+            data: {
+              display_name: nombre.trim() || "Consultor",
+            },
+          },
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data?.user) {
-        triggerToast?.(
-          `¡Acceso exitoso! Bienvenido ${data.user.user_metadata?.display_name || email}`,
-          "success"
-        );
+        if (data?.user) {
+          triggerToast?.(
+            `¡Cuenta creada exitosamente! Bienvenido ${data.user.user_metadata?.display_name || email}`,
+            "success"
+          );
+        }
+      } else {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: email.trim(),
+          password: password,
+        });
+
+        if (error) throw error;
+
+        if (data?.user) {
+          triggerToast?.(
+            `¡Acceso exitoso! Bienvenido ${data.user.user_metadata?.display_name || email}`,
+            "success"
+          );
+        }
       }
     } catch (err: any) {
-      console.error("Inline login error:", err);
-      triggerToast?.(err.message || "Credenciales incorrectas o error de conexión.", "error");
+      console.error("Inline auth error:", err);
+      triggerToast?.(err.message || "Error al autenticar o credenciales incorrectas.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -227,22 +255,42 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-slate-200/80 border border-slate-100 p-8 md:p-10 relative z-10">
           
           {!user ? (
-            // PREMIUM CLEAN LOGIN FORM - NO EXTRA BORDERS OR NOISE
-            <form onSubmit={handleInlineLogin} className="space-y-6">
-              <div className="space-y-3 text-center">
+            // PREMIUM CLEAN LOGIN / REGISTER FORM INLINE IN THE CARD
+            <form onSubmit={handleInlineAuth} className="space-y-5">
+              <div className="space-y-2 text-center">
                 <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-1">
                   <User className="w-5 h-5" />
                 </div>
                 <h3 className="font-display text-2xl font-black text-slate-900 tracking-tight">
-                  Bienvenido
+                  {isSignUp ? "Crear Cuenta" : "Bienvenido"}
                 </h3>
-                <p className="text-xs text-slate-500 font-light leading-relaxed max-w-[260px] mx-auto">
-                  Inicie sesión de manera directa para guardar sus planes de escalado, configuraciones de negocio y marcas.
+                <p className="text-xs text-slate-500 font-light leading-relaxed max-w-[280px] mx-auto">
+                  {isSignUp
+                    ? "Regístrese para guardar sus estrategias en la nube, personalice su marca y sincronice sus datos."
+                    : "Inicie sesión de manera directa para guardar sus planes de escalado, configuraciones de negocio y marcas."}
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1.5">
+              <div className="space-y-3">
+                {isSignUp && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Nombre o Agencia
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                        placeholder="Ej. Samuel Valencia"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
                     Correo Electrónico
                   </label>
@@ -259,10 +307,23 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                    Contraseña
-                  </label>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      Contraseña
+                    </label>
+                    {!isSignUp && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerToast?.("Puede solicitar cambio de contraseña en su correo de registro.", "info");
+                        }}
+                        className="text-[10px] text-blue-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        ¿Olvidó contraseña?
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                     <input
@@ -270,7 +331,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder={isSignUp ? "Mínimo 6 caracteres" : "••••••••"}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-850 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                     />
                   </div>
@@ -280,29 +341,29 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 cursor-pointer disabled:opacity-75"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 cursor-pointer disabled:opacity-75 mt-2"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verificando ingreso...</span>
+                    <span>{isSignUp ? "Creando cuenta..." : "Verificando ingreso..."}</span>
                   </>
                 ) : (
                   <>
                     <KeyRound className="w-4 h-4" />
-                    <span>Ingresar con Acceso Seguro</span>
+                    <span>{isSignUp ? "Registrarse Gratis" : "Ingresar con Acceso Seguro"}</span>
                   </>
                 )}
               </button>
 
               <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
-                ¿Aún no tiene cuenta?{" "}
+                {isSignUp ? "¿Ya tiene una cuenta?" : "¿Aún no tiene cuenta?"}{" "}
                 <button
                   type="button"
-                  onClick={onLoginClick}
-                  className="text-blue-600 hover:underline font-bold cursor-pointer"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-blue-600 hover:underline font-bold cursor-pointer ml-1"
                 >
-                  Regístrese gratis aquí
+                  {isSignUp ? "Inicie sesión aquí" : "Regístrese gratis aquí"}
                 </button>
               </div>
             </form>
