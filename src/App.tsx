@@ -45,7 +45,9 @@ import {
   GripVertical,
   Maximize2,
   Minimize2,
-  MessageSquare
+  MessageSquare,
+  Gift,
+  Lock
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
@@ -62,6 +64,7 @@ import { StrategySelector } from "./components/StrategySelector.tsx";
 import { TaskBoard } from "./components/TaskBoard.tsx";
 import { ConfiguracionModal } from "./components/ConfiguracionModal.tsx";
 import { StrategyChat } from "./components/StrategyChat.tsx";
+import { UpgradeModal } from "./components/UpgradeModal.tsx";
 import { ListTodo } from "lucide-react";
 
 const LOADING_STATUSES = [
@@ -293,6 +296,9 @@ export default function App() {
   
   // User Auth States
   const [user, setUser] = useState<any>(null);
+  const [perfil, setPerfil] = useState<any>(null);
+  const [showUpgrade, setShowUpgrade] = useState<boolean>(false);
+  const hasShownCreditNoticeRef = useRef<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   
   // Dynamic loading message index
@@ -402,6 +408,8 @@ export default function App() {
         loadUserProfile(session.user.id);
       } else {
         setUser(null);
+        setPerfil(null);
+        hasShownCreditNoticeRef.current = false;
         setIsWorkspaceActive(false);
         setIsHistoryOpen(false);
         setIsConfigModalOpen(false);
@@ -423,17 +431,60 @@ export default function App() {
     const client = getSupabaseClient();
     if (!client) return;
     try {
-      const { data, error } = await client
+      const { data } = await client
         .from("perfiles")
         .select("*")
         .eq("user_id", userId)
-        .maybeSingle(); // Use maybeSingle to prevent exceptions if first-time user
-      if (data) {
-        if (data.consultor_nombre) setConsultorNombre(data.consultor_nombre);
-        if (data.accent_color) setAccentColor(data.accent_color);
+        .maybeSingle();
+
+      let userPerfil = data;
+
+      if (!userPerfil) {
+        // First-time registered user: Create default profile record
+        const defaultProfile = {
+          user_id: userId,
+          creditos_gratis_limite: 1,
+          creditos_gratis_usados: 0,
+          acceso_ilimitado: false
+        };
+
+        try {
+          const { data: createdData } = await client
+            .from("perfiles")
+            .upsert(defaultProfile, { onConflict: "user_id" })
+            .select("*")
+            .maybeSingle();
+
+          userPerfil = createdData || defaultProfile;
+        } catch {
+          userPerfil = defaultProfile;
+        }
+      }
+
+      setPerfil(userPerfil);
+      if (userPerfil.consultor_nombre) setConsultorNombre(userPerfil.consultor_nombre);
+      if (userPerfil.accent_color) setAccentColor(userPerfil.accent_color);
+
+      // Trigger toast notice for free credit
+      if (!userPerfil.acceso_ilimitado && (userPerfil.creditos_gratis_usados ?? 0) < (userPerfil.creditos_gratis_limite ?? 1)) {
+        if (!hasShownCreditNoticeRef.current) {
+          hasShownCreditNoticeRef.current = true;
+          triggerToast("🎁 ¡Tu cuenta incluye 1 creación de estrategia gratis! Elige tu estrategia para comenzar.", "info");
+        }
       }
     } catch (err) {
       console.warn("No se pudo cargar el perfil del usuario:", err);
+      const fallbackPerfil = {
+        user_id: userId,
+        creditos_gratis_limite: 1,
+        creditos_gratis_usados: 0,
+        acceso_ilimitado: false
+      };
+      setPerfil(fallbackPerfil);
+      if (!hasShownCreditNoticeRef.current) {
+        hasShownCreditNoticeRef.current = true;
+        triggerToast("🎁 ¡Tu cuenta incluye 1 creación de estrategia gratis!", "info");
+      }
     }
   };
 
@@ -889,6 +940,30 @@ export default function App() {
     if (startIndex === 0) {
       setSections({});
       setResumen("");
+
+      // Second security layer check before starting pipeline
+      if (user && !perfil?.acceso_ilimitado) {
+        try {
+          const check = await invokeEdgeFunctionWithRetry(
+            { action: "check_credit", user_id: user.id },
+            (attempt, delay, errorMsg) => {
+              setRetryInfo({ attempt, delay, errorMsg });
+            }
+          );
+          if (!check?.exito) {
+            setShowUpgrade(true);
+            setGenerationStatus("idle");
+            return;
+          }
+          // Credit successfully consumed, refresh profile
+          loadUserProfile(user.id);
+        } catch (err) {
+          console.error("Error verificando crédito:", err);
+          setShowUpgrade(true);
+          setGenerationStatus("idle");
+          return;
+        }
+      }
     }
 
     let currentSectionsState = startIndex === 0 ? {} : { ...sections };
@@ -1656,7 +1731,7 @@ export default function App() {
           <div className="flex-1 min-w-0 p-4 md:p-8 space-y-6 overflow-y-auto">
             
             {/* CANVAS HEADER BRANDING */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6 print:hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 pb-6 print:hidden">
               <div className="text-left space-y-1">
                 <h1 className="font-display text-2xl md:text-3.5xl font-black tracking-tight leading-none text-slate-900">
                   <span>¡Bienvenido, </span>
@@ -1668,6 +1743,39 @@ export default function App() {
                 <p className="text-xs md:text-sm font-semibold text-slate-600 mt-1">
                   Crea las mejores estrategias para tu negocio.
                 </p>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center shrink-0">
+                {user ? (
+                  perfil?.acceso_ilimitado ? (
+                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 text-xs font-bold shadow-2xs">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>Acceso Ilimitado Prime</span>
+                    </div>
+                  ) : (perfil?.creditos_gratis_usados ?? 0) < (perfil?.creditos_gratis_limite ?? 1) ? (
+                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold shadow-2xs">
+                      <Gift className="w-4 h-4 text-emerald-600 animate-bounce" />
+                      <span>🎁 1 Estrategia Gratis Disponible</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowUpgrade(true)}
+                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer shadow-2xs"
+                    >
+                      <Lock className="w-4 h-4 text-slate-500" />
+                      <span>0 Créditos — Desbloquear Acceso</span>
+                    </button>
+                  )
+                ) : (
+                  <button
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-blue-700 text-xs font-bold transition cursor-pointer shadow-2xs"
+                  >
+                    <Gift className="w-4 h-4 text-blue-600" />
+                    <span>Regístrate para 1 Estrategia Gratis</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1695,6 +1803,9 @@ export default function App() {
               {generationStatus === "selecting" && (
                 <StrategySelector
                   formData={formData}
+                  tieneCreditoDisponible={!perfil?.acceso_ilimitado && (perfil?.creditos_gratis_usados ?? 0) < (perfil?.creditos_gratis_limite ?? 1)}
+                  accesoIlimitado={!user || !!perfil?.acceso_ilimitado}
+                  onIntentoBloqueado={() => setShowUpgrade(true)}
                   onSelectStrategy={(strategyId) => {
                     setSelectedStrategyType(strategyId);
                     generateStrategy(0, strategyId);
@@ -2630,6 +2741,22 @@ export default function App() {
         businessName={formData.nombreNegocio}
         invokeEdgeFunction={(payload) => invokeEdgeFunctionWithRetry(payload, () => {})}
       />
+
+      {/* Upgrade / Access Code Modal */}
+      {showUpgrade && (
+        <UpgradeModal
+          userId={user?.id}
+          invokeEdgeFunction={(payload) => invokeEdgeFunctionWithRetry(payload, () => {})}
+          onClose={() => setShowUpgrade(false)}
+          onCodeRedeemed={() => {
+            setShowUpgrade(false);
+            if (user?.id) {
+              loadUserProfile(user.id);
+            }
+            triggerToast("¡Acceso ilimitado activado correctamente!", "success");
+          }}
+        />
+      )}
     </div>
   );
 }

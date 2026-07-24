@@ -139,6 +139,122 @@ serve(async (req) => {
       }
     }
 
+    if (action === "check_credit") {
+      const { user_id } = body;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "Falta user_id" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      // Check if profile exists; if not, create default profile with 1 free credit
+      const { data: profile } = await supabase
+        .from("perfiles")
+        .select("*")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (!profile) {
+        await supabase.from("perfiles").upsert({
+          user_id,
+          creditos_gratis_limite: 1,
+          creditos_gratis_usados: 0,
+          acceso_ilimitado: false
+        }, { onConflict: "user_id" });
+      } else if (profile.acceso_ilimitado) {
+        return new Response(JSON.stringify({ exito: true, ilimitado: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      try {
+        const { data, error } = await supabase.rpc("consumir_credito", { p_user_id: user_id });
+        if (!error && data && data.length > 0) {
+          return new Response(JSON.stringify(data[0]), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+      } catch (rpcErr) {
+        console.warn("RPC consumir_credito falló o no existe, usando fallback:", rpcErr);
+      }
+
+      // Fallback manual de consumo de créditos
+      const { data: currentProfile } = await supabase
+        .from("perfiles")
+        .select("*")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (currentProfile?.acceso_ilimitado) {
+        return new Response(JSON.stringify({ exito: true, ilimitado: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      const usados = currentProfile?.creditos_gratis_usados ?? 0;
+      const limite = currentProfile?.creditos_gratis_limite ?? 1;
+
+      if (usados < limite) {
+        await supabase
+          .from("perfiles")
+          .update({ creditos_gratis_usados: usados + 1 })
+          .eq("user_id", user_id);
+
+        return new Response(JSON.stringify({ exito: true, restantes: limite - (usados + 1) }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      } else {
+        return new Response(JSON.stringify({ exito: false, restantes: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+    }
+
+    if (action === "redeem_code") {
+      const { user_id, codigo } = body;
+      if (!user_id || !codigo) {
+        return new Response(JSON.stringify({ error: "Faltan datos" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      const { data: codigoData, error: codigoError } = await supabase
+        .from("codigos_acceso")
+        .select("*")
+        .eq("codigo", codigo.trim().toUpperCase())
+        .is("usado_por", null)
+        .single();
+
+      if (codigoError || !codigoData) {
+        return new Response(JSON.stringify({ error: "Código inválido o ya usado" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      await supabase
+        .from("codigos_acceso")
+        .update({ usado_por: user_id, usado_en: new Date().toISOString() })
+        .eq("codigo", codigoData.codigo);
+
+      await supabase
+        .from("perfiles")
+        .update({ acceso_ilimitado: true })
+        .eq("user_id", user_id);
+
+      return new Response(JSON.stringify({ exito: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Acción no reconocida" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

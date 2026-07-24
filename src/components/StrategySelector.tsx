@@ -12,7 +12,9 @@ import {
   Loader2, 
   Terminal,
   Bookmark,
-  Activity
+  Activity,
+  Lock,
+  Gift
 } from "lucide-react";
 import { FormData } from "../utils/prompts";
 
@@ -20,6 +22,9 @@ interface StrategySelectorProps {
   formData: FormData;
   onSelectStrategy: (strategyId: string) => void;
   onBackToOnboarding: () => void;
+  tieneCreditoDisponible?: boolean;
+  accesoIlimitado?: boolean;
+  onIntentoBloqueado?: () => void;
 }
 
 export interface StrategyOption {
@@ -36,10 +41,29 @@ export interface StrategyOption {
 export const StrategySelector: React.FC<StrategySelectorProps> = ({ 
   formData, 
   onSelectStrategy,
-  onBackToOnboarding 
+  onBackToOnboarding,
+  tieneCreditoDisponible = true,
+  accesoIlimitado = true,
+  onIntentoBloqueado
 }) => {
   const [isStructuring, setIsStructuring] = useState<boolean>(true);
   const [structuringStep, setStructuringStep] = useState<number>(0);
+
+  const esEstrategiaCompleta = (strategyId: string) => strategyId === "completa";
+
+  const estaBloqueada = (strategyId: string): boolean => {
+    if (accesoIlimitado) return false;
+    if (esEstrategiaCompleta(strategyId)) return true;
+    return !tieneCreditoDisponible;
+  };
+
+  const handleSelect = (strategyId: string) => {
+    if (estaBloqueada(strategyId)) {
+      if (onIntentoBloqueado) onIntentoBloqueado();
+      return;
+    }
+    onSelectStrategy(strategyId);
+  };
 
   const structuringLogs = [
     "Inicializando motor de diagnóstico empresarial...",
@@ -209,6 +233,53 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
               Se ha estructurado con éxito el modelo de <b>{formData.nombreNegocio}</b>. Para entregarte las tácticas más rentables y accionables, dinos: <b>¿Qué tipo de estrategia quieres que desarrollemos hoy?</b>
             </p>
           </div>
+
+          {/* Credit status banner */}
+          {accesoIlimitado ? (
+            <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3 flex items-center gap-3 text-xs text-amber-900 font-medium">
+              <div className="p-2 bg-amber-100 rounded-xl text-amber-700 shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-950">Acceso Ilimitado Activado</p>
+                <p className="text-[11px] text-amber-800">Puedes generar cualquiera de las estrategias disponibles de forma ilimitada.</p>
+              </div>
+            </div>
+          ) : tieneCreditoDisponible ? (
+            <div className="bg-emerald-50/90 border border-emerald-200/80 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs text-emerald-900">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-xl text-emerald-700 shrink-0">
+                  <Gift className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-950">🎁 1 Creación de Estrategia Gratis Disponible</p>
+                  <p className="text-[11px] text-emerald-800 font-normal">
+                    Tu nueva cuenta incluye 1 crédito gratis. Elige Inbound, High-Ticket, Ads o Contenidos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-100 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs text-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-slate-200 rounded-xl text-slate-600 shrink-0">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Crédito gratuito utilizado</p>
+                  <p className="text-[11px] text-slate-600">
+                    Has usado tu creación de estrategia gratis. Ingresa tu código de socio para desbloquear acceso ilimitado.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onIntentoBloqueado}
+                className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-[11px] font-bold hover:bg-slate-800 transition cursor-pointer shrink-0"
+              >
+                Desbloquear
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -219,36 +290,53 @@ export const StrategySelector: React.FC<StrategySelectorProps> = ({
         </span>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {strategies.map((strat) => (
-            <button
-              key={strat.id}
-              onClick={() => onSelectStrategy(strat.id)}
-              className={`flex flex-col text-left p-4.5 rounded-2xl border transition-all duration-200 cursor-pointer ${strat.color} hover:shadow-md hover:-translate-y-0.5 group`}
-            >
-              <div className="flex justify-between items-start w-full gap-2">
-                <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-blue-600 group-hover:scale-105 transition-all">
-                  {strat.icon}
+          {strategies.map((strat) => {
+            const locked = estaBloqueada(strat.id);
+            return (
+              <button
+                key={strat.id}
+                onClick={() => handleSelect(strat.id)}
+                className={`flex flex-col text-left p-4.5 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden ${
+                  locked
+                    ? "bg-slate-50 border-slate-200"
+                    : `${strat.color} hover:shadow-md hover:-translate-y-0.5 group`
+                }`}
+              >
+                <div className="flex justify-between items-start w-full gap-2">
+                  <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-blue-600 group-hover:scale-105 transition-all">
+                    {strat.icon}
+                  </div>
+                  <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-white text-slate-600 border border-slate-100 shadow-sm">
+                    {strat.badge}
+                  </span>
                 </div>
-                <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-white text-slate-600 border border-slate-100 shadow-sm">
-                  {strat.badge}
-                </span>
-              </div>
 
-              <div className="mt-3.5 space-y-1">
-                <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-800 transition">
-                  {strat.name}
-                </h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed font-light">
-                  {strat.description}
-                </p>
-              </div>
+                <div className="mt-3.5 space-y-1">
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-800 transition">
+                    {strat.name}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-light">
+                    {strat.description}
+                  </p>
+                </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-200/50 flex items-center text-[10px] text-blue-600 font-bold w-full justify-between">
-                <span>Elegir esta estrategia</span>
-                <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-              </div>
-            </button>
-          ))}
+                <div className="mt-4 pt-3 border-t border-slate-200/50 flex items-center text-[10px] text-blue-600 font-bold w-full justify-between">
+                  <span>{locked ? "Desbloquear acceso" : "Elegir esta estrategia"}</span>
+                  <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
+
+                {locked && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-1 text-center px-4 z-10 transition-all">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center border border-slate-200 shadow-2xs">
+                      <Lock className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">Acceso privilegiado</span>
+                    <span className="text-[10px] font-medium text-slate-500">Contacta a soporte para desbloquear</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
