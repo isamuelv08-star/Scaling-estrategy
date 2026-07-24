@@ -44,7 +44,8 @@ import {
   Trash2,
   GripVertical,
   Maximize2,
-  Minimize2
+  Minimize2,
+  MessageSquare
 } from "lucide-react";
 import { SECTIONS_CONFIG, SUMMARY_PROMPT, FormData, getSectionsForStrategy } from "./utils/prompts.ts";
 import { parseMarkdownToReact } from "./utils/parser.tsx";
@@ -287,6 +288,7 @@ export default function App() {
   const [accentColor, setAccentColor] = useState<string>("blue");
   const [isBrandingOpen, setIsBrandingOpen] = useState<boolean>(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
   
   // User Auth States
@@ -1572,6 +1574,24 @@ export default function App() {
                   <Settings className="w-4 h-4 shrink-0 text-blue-600" />
                   {!isSidebarCollapsed && <span>Configuración</span>}
                 </button>
+
+                <button
+                  onClick={() => setIsChatOpen(true)}
+                  className={`w-full flex items-center gap-3 py-3 px-3.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isSidebarCollapsed ? "justify-center" : ""
+                  } text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200/80 shadow-2xs hover:shadow-xs`}
+                  title="Preguntar sobre tu estrategia"
+                >
+                  <MessageSquare className="w-4 h-4 shrink-0 text-blue-600" />
+                  {!isSidebarCollapsed && (
+                    <div className="flex items-center justify-between w-full min-w-0">
+                      <span className="truncate">Preguntar a la IA</span>
+                      <span className="bg-blue-600 text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ml-1">
+                        Chat
+                      </span>
+                    </div>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -1700,11 +1720,6 @@ export default function App() {
 
               {generationStatus === "finished" && (
                 <div className="space-y-3">
-                  <StrategyChat
-                    planContext={Object.values(sections).join("\n\n")}
-                    businessName={formData.nombreNegocio}
-                    invokeEdgeFunction={(payload) => invokeEdgeFunctionWithRetry(payload, () => {})}
-                  />
                   <WorkspaceControls
                     formData={formData}
                     consultorNombre={consultorNombre}
@@ -2605,6 +2620,15 @@ export default function App() {
           fetchHistory();
         }}
         triggerToast={triggerToast}
+      />
+
+      {/* Strategy Chat Overlay Component */}
+      <StrategyChat
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        planContext={Object.values(sections).join("\n\n")}
+        businessName={formData.nombreNegocio}
+        invokeEdgeFunction={(payload) => invokeEdgeFunctionWithRetry(payload, () => {})}
       />
     </div>
   );
